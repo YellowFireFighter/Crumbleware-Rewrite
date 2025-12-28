@@ -16,8 +16,8 @@ esp.settings = {
     includeai = false, -- not added
     fade = {
         fadetime = 1,
-        fadein = true,
-        fadeout = true
+        fadein = false,
+        fadeout = false
     },
     box = {enabled = false, outline = false, mode = "full", color = Color3.fromRGB(255,255,255)},
     healthbar = {enabled = false, lerp = false, width = 3, full_color = Color3.fromRGB(0,255,0), empty_color = Color3.fromRGB(255,0,0)},
