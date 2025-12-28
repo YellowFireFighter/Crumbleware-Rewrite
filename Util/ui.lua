@@ -186,7 +186,7 @@ spawn(function()
 end)
 
 local library = {cheatname = Name;ext = "";gamename = Game;colorpicking = false;tabbuttons = {};tabs = {};options = {};flags = {};scrolling = false;notifyText = Drawing.new("Text");playing = false;multiZindex = 200;toInvis = {};libColor = Color3.fromRGB(240, 142, 214);disabledcolor = Color3.fromRGB(233, 0, 0);blacklisted = {Enum.KeyCode.W,Enum.KeyCode.A,Enum.KeyCode.S,Enum.KeyCode.D,Enum.UserInputType.MouseMovement}}
-
+library.watermark = Watermark
 local RangedDefaultTable = {
     Current = {
         Info = nil
