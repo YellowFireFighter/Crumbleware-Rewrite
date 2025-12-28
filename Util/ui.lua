@@ -6,7 +6,7 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 --HTTP
-funny = true
+_G.funny = false
 local Name = "CrumblewareV7"
 local Game = "PD"
 
@@ -47,521 +47,66 @@ local foldercool = Instance.new("Folder")
 foldercool.Parent = game:GetService("CoreGui")
 menu.Parent          = foldercool
 menu.bg.pre.Text = ''
-task.spawn(function()
-    while wait(0.2) do
-        if funny then
-            local number = math.random(1,7)
-            if number == 1 then
-                menu.bg.pre.Text = ''
-                wait(0.2)
-                menu.bg.pre.Text = 'C'
-                wait(0.2)
-                menu.bg.pre.Text = 'Cr'
-                wait(0.2)
-                menu.bg.pre.Text = 'Cru'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crum'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumb'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumbl'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumble'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumblew'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumblewa'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumblewar'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumbleware'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumbleware <font color="#c375ae">V</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumbleware <font color="#c375ae">V7</font>'
-                wait(1)
-                menu.bg.pre.Text = 'Crumbleware <font color="#c375ae">V</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumbleware'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumblewar'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumblewa'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumblew'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumble'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumbl'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crumb'
-                wait(0.2)
-                menu.bg.pre.Text = 'Crum'
-                wait(0.2)
-                menu.bg.pre.Text = 'Cru'
-                wait(0.2)
-                menu.bg.pre.Text = 'Cr'
-                wait(0.2)
-                menu.bg.pre.Text = 'C'
-                wait(0.2)
-                menu.bg.pre.Text = ''
-                wait(0.2)
-            elseif number == 2 then
-                menu.bg.pre.Text = ''
-                wait(0.2)
-                menu.bg.pre.Text = 'O'
-                wait(0.2)
-                menu.bg.pre.Text = 'Oc'
-                wait(0.2)
-                menu.bg.pre.Text = 'Oct'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octo'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octoh'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octoho'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octohoo'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octohook'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octohook <font color="#c375ae">S</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octohook <font color="#c375ae">Su</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octohook <font color="#c375ae">Suc</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octohook <font color="#c375ae">Suck</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octohook <font color="#c375ae">Sucks</font>'
-                wait(1)
-                menu.bg.pre.Text = 'Octohook <font color="#c375ae">Suck</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octohook <font color="#c375ae">Suc</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octohook <font color="#c375ae">Su</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octohook <font color="#c375ae">S</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octohook'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octohoo'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octoho'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octoh'
-                wait(0.2)
-                menu.bg.pre.Text = 'Octo'
-                wait(0.2)
-                menu.bg.pre.Text = 'Oct'
-                wait(0.2)
-                menu.bg.pre.Text = 'Oc'
-                wait(0.2)
-                menu.bg.pre.Text = 'O'
-                wait(0.2)
-                menu.bg.pre.Text = ''
-                wait(0.2)
-            elseif number == 3 then
-                menu.bg.pre.Text = ''
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/1</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> W'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Wa'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> War'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware :'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : O'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Os'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osa'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osam'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama B'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bi'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin C'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin Ch'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin Che'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin Chea'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin Cheat'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin Cheati'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin Cheatin'
-                wait(1)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin Cheati'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin Cheat'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin Chea'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin Che'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin Ch'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin C'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bin'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama Bi'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama B'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osama'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osam'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Osa'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware : Os'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware :'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Ware'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> War'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> Wa'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font> W'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/11</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/1</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9/</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">9</font>'
-                wait(0.2)
-                menu.bg.pre.Text = ''
-            elseif number == 4 then
-                wait(0.2)
-                menu.bg.pre.Text = ''
-                wait(0.2)
-                menu.bg.pre.Text = 'G'
-                wait(0.2)
-                menu.bg.pre.Text = 'Ge'
-                wait(0.2)
-                menu.bg.pre.Text = 'Geo'
-                wait(0.2)
-                menu.bg.pre.Text = 'Geor'
-                wait(0.2)
-                menu.bg.pre.Text = 'Georg'
-                wait(0.2)
-                menu.bg.pre.Text = 'George'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeF'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFl'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFlo'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloy'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">S</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">So</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">Sol</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">Solu</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">Solut</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">Soluti</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">Solutio</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">Solution</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">Solutions</font>'
-                wait(1)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">Solution</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">Solutio</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">Soluti</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">Solut</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">Solu</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">Sol</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">So</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.<font color="#c375ae">S</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd.'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloyd'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFloy'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFlo'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeFl'
-                wait(0.2)
-                menu.bg.pre.Text = 'GeorgeF'
-                wait(0.2)
-                menu.bg.pre.Text = 'George'
-                wait(0.2)
-                menu.bg.pre.Text = 'Georg'
-                wait(0.2)
-                menu.bg.pre.Text = 'Geor'
-                wait(0.2)
-                menu.bg.pre.Text = 'Geo'
-                wait(0.2)
-                menu.bg.pre.Text = 'Ge'
-                wait(0.2)
-                menu.bg.pre.Text = 'G'
-                wait(0.2)
-                menu.bg.pre.Text = ''
-                wait(0.2)
-            elseif number == 5 then
-                wait(0.2)
-                menu.bg.pre.Text = ''
-                wait(0.2)
-                menu.bg.pre.Text = 'A'
-                wait(0.2)
-                menu.bg.pre.Text = 'Al'
-                wait(0.2)
-                menu.bg.pre.Text = 'Ala'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">H</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Ho</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Hoo</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Hook</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Hook</font> o'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Hook</font> on'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Hook</font> on T'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Hook</font> on To'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Hook</font> on Top'
-                wait(1)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Hook</font> on To'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Hook</font> on T'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Hook</font> on'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Hook</font> o'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Hook</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Hoo</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">Ho</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan <font color="#c375ae">H</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Alan'
-                wait(0.2)
-                menu.bg.pre.Text = 'Ala'
-                wait(0.2)
-                menu.bg.pre.Text = 'Al'
-                wait(0.2)
-                menu.bg.pre.Text = 'A'
-                wait(0.2)
-                menu.bg.pre.Text = ''
-                wait(0.2)
-            elseif number == 6 then
-                wait(0.2)
-                menu.bg.pre.Text = ''
-                wait(0.2)
-                menu.bg.pre.Text = 'P'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pi'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">S</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">So</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Sol</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solu</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solut</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Soluti</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solutio</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solution</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solutions</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solutions</font> >'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solutions</font> > O'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solutions</font> > Oc'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solutions</font> > Oct'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solutions</font> > Octo'
-                wait(1)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solutions</font> > Oct'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solutions</font> > Oc'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solutions</font> > O'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solutions</font> >'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solutions</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solution</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solutio</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Soluti</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solut</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Solu</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">Sol</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">So</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.<font color="#c375ae">S</font>'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie.'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pie'
-                wait(0.2)
-                menu.bg.pre.Text = 'Pi'
-                wait(0.2)
-                menu.bg.pre.Text = 'P'
-                wait(0.2)
-                menu.bg.pre.Text = ''
-                wait(0.2)
-            elseif number == 7 then
-                wait(0.2)
-                menu.bg.pre.Text = ''
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">P</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pa</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pas</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Past</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Paste</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> I'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It T'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It Th'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It Thi'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This M'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This Mo'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This Mor'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This Morn'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This Morni'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This Mornin'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This Morning'
-                wait(1)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This Mornin'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This Morni'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This Morn'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This Mor'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This Mo'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This M'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It This'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It Thi'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It Th'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It T'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> It'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font> I'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pasted</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Paste</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Past</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pas</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">Pa</font>'
-                wait(0.2)
-                menu.bg.pre.Text = '<font color="#c375ae">P</font>'
-                wait(0.2)
-                menu.bg.pre.Text = ''
-                wait(0.2)
-            end
+local strings = {
+    'Crumbleware <font color="#c375ae">V7</font>',
+    '<font color="#c375ae">9/11</font> Ware : Osama Bin Cheatin',
+    'GeorgeFloyd.<font color="#c375ae">Solutions</font>',
+    'Moonlight.<font color="#c375ae">win</font>',
+    'Rathack.<font color="#c375ae">gay</font>',
+    'Faded.<font color="#c375ae">yarts</font>',
+    'Octohook.<font color="#c375ae">xyz</font>'
+}
+
+local TextLabel = menu.bg.pre
+
+local TYPE_SPEED = 0.1
+local HOLD_TIME = 1
+
+local function tokenizeRichText(text)
+    local tokens = {}
+    local i = 1
+
+    while i <= #text do
+        local s, e = text:find("<.->", i)
+        if s == i then
+            table.insert(tokens, text:sub(s, e))
+            i = e + 1
         else
-            menu.bg.pre.Text = 'Crumbleware <font color="#c375ae">V7</font>'
+            table.insert(tokens, text:sub(i, i))
+            i += 1
+        end
+    end
+
+    return tokens
+end
+
+local function typewriter(text)
+    local tokens = tokenizeRichText(text)
+    local buffer = {}
+
+    -- forward
+    for i = 1, #tokens do
+        table.insert(buffer, tokens[i])
+        TextLabel.Text = table.concat(buffer)
+        task.wait(TYPE_SPEED)
+    end
+
+    task.wait(HOLD_TIME)
+
+    -- backward
+    for i = #tokens, 1, -1 do
+        table.remove(buffer)
+        TextLabel.Text = table.concat(buffer)
+        task.wait(TYPE_SPEED)
+    end
+end
+
+task.spawn(function()
+    while task.wait(0.2) do
+        if _G.funny then
+            typewriter(strings[math.random(#strings)])
+        else
+            TextLabel.Text = 'Crumbleware <font color="#c375ae">V7</font>'
         end
     end
 end)
