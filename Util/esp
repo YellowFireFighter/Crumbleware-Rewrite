@@ -458,4 +458,4 @@ for _,player in pairs(players:GetChildren()) do
     esp:initplayer(player)
 end
 
-return esp
+return esp, framework
