@@ -58,7 +58,6 @@ local strings = {
 }
 
 local TextLabel = menu.bg.pre
-TextLabel.RichText = true
 
 local TYPE_SPEED = 0.1
 local HOLD_TIME = 1
@@ -129,6 +128,15 @@ local function typewriter(text)
     end
 end
 
+task.spawn(function()
+    while task.wait(0.2) do
+        if _G.funny then
+            typewriter(strings[math.random(#strings)])
+        else
+            TextLabel.Text = 'Crumbleware <font color="#c375ae">V7</font>'
+        end
+    end
+end)
 
 local Watermark = Instance.new("ScreenGui")
 Watermark.Name = "Watermark"
@@ -187,6 +195,7 @@ end)
 
 local library = {cheatname = Name;ext = "";gamename = Game;colorpicking = false;tabbuttons = {};tabs = {};options = {};flags = {};scrolling = false;notifyText = Drawing.new("Text");playing = false;multiZindex = 200;toInvis = {};libColor = Color3.fromRGB(240, 142, 214);disabledcolor = Color3.fromRGB(233, 0, 0);blacklisted = {Enum.KeyCode.W,Enum.KeyCode.A,Enum.KeyCode.S,Enum.KeyCode.D,Enum.UserInputType.MouseMovement}}
 library.watermark = Watermark
+
 local RangedDefaultTable = {
     Current = {
         Info = nil
