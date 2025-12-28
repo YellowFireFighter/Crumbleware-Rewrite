@@ -58,58 +58,77 @@ local strings = {
 }
 
 local TextLabel = menu.bg.pre
+TextLabel.RichText = true
 
 local TYPE_SPEED = 0.1
 local HOLD_TIME = 1
 
-local function tokenizeRichText(text)
-    local tokens = {}
+local function parseRichText(text)
+    local segments = {}
     local i = 1
 
     while i <= #text do
-        local s, e = text:find("<.->", i)
-        if s == i then
-            table.insert(tokens, text:sub(s, e))
-            i = e + 1
+        local fs, fe = text:find("<font.->", i)
+        if fs == i then
+            local close = text:find("</font>", fe + 1)
+            table.insert(segments, {
+                tag = text:sub(fs, fe),
+                text = text:sub(fe + 1, close - 1),
+            })
+            i = close + 7
         else
-            table.insert(tokens, text:sub(i, i))
+            table.insert(segments, {
+                text = text:sub(i, i)
+            })
             i += 1
         end
     end
 
-    return tokens
+    return segments
 end
 
 local function typewriter(text)
-    local tokens = tokenizeRichText(text)
-    local buffer = {}
+    local segments = parseRichText(text)
+    local output = ""
 
     -- forward
-    for i = 1, #tokens do
-        table.insert(buffer, tokens[i])
-        TextLabel.Text = table.concat(buffer)
-        task.wait(TYPE_SPEED)
+    for _, seg in ipairs(segments) do
+        if seg.tag then
+            for i = 1, #seg.text do
+                output ..= seg.tag .. seg.text:sub(1, i) .. "</font>"
+                TextLabel.Text = output
+                task.wait(TYPE_SPEED)
+            end
+        else
+            output ..= seg.text
+            TextLabel.Text = output
+            task.wait(TYPE_SPEED)
+        end
     end
 
     task.wait(HOLD_TIME)
 
     -- backward
-    for i = #tokens, 1, -1 do
-        table.remove(buffer)
-        TextLabel.Text = table.concat(buffer)
-        task.wait(TYPE_SPEED)
+    for s = #segments, 1, -1 do
+        local seg = segments[s]
+        if seg.tag then
+            for i = #seg.text, 0, -1 do
+                local temp = output:gsub(
+                    seg.tag .. seg.text .. "</font>",
+                    i > 0 and (seg.tag .. seg.text:sub(1, i) .. "</font>") or ""
+                )
+                output = temp
+                TextLabel.Text = output
+                task.wait(TYPE_SPEED)
+            end
+        else
+            output = output:sub(1, #output - 1)
+            TextLabel.Text = output
+            task.wait(TYPE_SPEED)
+        end
     end
 end
 
-task.spawn(function()
-    while task.wait(0.2) do
-        if _G.funny then
-            typewriter(strings[math.random(#strings)])
-        else
-            TextLabel.Text = 'Crumbleware <font color="#c375ae">V7</font>'
-        end
-    end
-end)
 
 local Watermark = Instance.new("ScreenGui")
 Watermark.Name = "Watermark"
