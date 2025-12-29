@@ -1,3 +1,5 @@
+local esp, framework = loadstring(request({Url = "https://raw.githubusercontent.com/YellowFireFighter/Crumbleware-Rewrite/refs/heads/main/Util/esp.lua", Method = "Get"}).Body)()
+
 Library = {
     Open = true;
     Accent = Color3.fromRGB(230,0,255); --Color3.fromRGB(0,117,19);
@@ -1315,11 +1317,6 @@ do
             end
 
             local Children = ImageLabel:GetDescendants()
-            local Children2 = game.CoreGui["Crumbleware"]["\0"]:GetDescendants()
-            for i,v in Children2 do
-                table.insert(Children, v)
-            end
-            table.insert(Children, game.CoreGui["Crumbleware"]["\0"])
             table.insert(Children, ImageLabel)
 
             local Tween;
@@ -1342,8 +1339,6 @@ do
             Library:Connection(Tween.Completed, function()
                 Window.Tweening = false
                 ImageLabel.Visible = bool
-                game.CoreGui["Crumbleware"]["\0"].Visible = bool
-                game.CoreGui["Crumbleware"]["\0"]["\0"]["\0"].ViewportFrame.Visible = bool
             end)
         end 
 
