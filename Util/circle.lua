@@ -2,7 +2,7 @@ local gethui = gethui or function() return game.CoreGui end
 
 local CircleProgression = {}
 CircleProgression.Progress = 0
-CircleProgression.Radius = 200
+CircleProgression.Radius = 150
 CircleProgression.Position = UDim2.new(0.5, 0, 0.5, 0)
 CircleProgression.Color = Color3.fromRGB(25, 255, 25)
 CircleProgression.BackgroundColor = Color3.fromRGB(100, 100, 100)
