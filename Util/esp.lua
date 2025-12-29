@@ -416,7 +416,7 @@ runservice.RenderStepped:Connect(function()
                     end
 
                     if esp.settings.lookangle.enabled then
-                        local lookdir = root.CFrame.LookVector * esp.settings.lookangle.length
+                        local lookdir = head.CFrame.LookVector * esp.settings.lookangle.length
 
                         local endpos = headpos + lookdir
 
