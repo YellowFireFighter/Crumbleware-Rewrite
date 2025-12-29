@@ -4453,3 +4453,5 @@ spawn(function()
         Gradient.Rotation = Gradient.Rotation + 0.1
     end
 end)
+
+return Library
