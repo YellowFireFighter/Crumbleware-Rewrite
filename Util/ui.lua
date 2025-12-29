@@ -1309,9 +1309,9 @@ do
 
             if bool then 
                 ImageLabel.Visible = true
-                game.CoreGui["Crumbleware"]["\0"].Visible = true
+                --game.CoreGui["Crumbleware"]["\0"].Visible = true
             else
-                game.CoreGui["Crumbleware"]["\0"]["\0"]["\0"].ViewportFrame.Visible = false
+                --game.CoreGui["Crumbleware"]["\0"]["\0"]["\0"].ViewportFrame.Visible = false
             end
 
             local Children = ImageLabel:GetDescendants()
@@ -4453,5 +4453,3 @@ spawn(function()
         Gradient.Rotation = Gradient.Rotation + 0.1
     end
 end)
-
-return Library
