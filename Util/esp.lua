@@ -174,7 +174,7 @@ runservice.RenderStepped:Connect(function()
                 local padding = Vector3.new(0.5, 0, 1)
 
                 for _, part in pairs(character:GetChildren()) do
-                    if part.Name == "Head" or part.Name == "RightFoot" or part.Name == "LeftFoot" or part.Name = "RightLeg" or part.Name = "LeftLeg" then
+                    if part.Name == "Head" or part.Name == "RightFoot" or part.Name == "LeftFoot" or part.Name == "RightLeg" or part.Name == "LeftLeg" then
                         local corners = {
                             part.Position + Vector3.new(padding.X, 0, padding.Z),
                             part.Position + Vector3.new(-padding.X, 0, padding.Z),
