@@ -174,7 +174,7 @@ runservice.RenderStepped:Connect(function()
                 local padding = Vector3.new(0.5, 0, 1)
 
                 for _, part in pairs(character:GetChildren()) do
-                    if part.Name == "Head" or part.Name == "RightFoot" or part.Name == "LeftFoot" then
+                    if part.Name == "Head" or part.Name == "RightFoot" or part.Name == "LeftFoot" or part.Name = "RightLeg" or part.Name = "LeftLeg" then
                         local corners = {
                             part.Position + Vector3.new(padding.X, 0, padding.Z),
                             part.Position + Vector3.new(-padding.X, 0, padding.Z),
@@ -299,6 +299,8 @@ runservice.RenderStepped:Connect(function()
                                 drawings.headcircle_outline.Radius = drawings.headcircle.Radius
                                 drawings.headcircle_outline.Thickness = drawings.headcircle.Thickness * 2.5
                                 drawings.headcircle_outline.Visible = true
+                            else
+                                drawings.headcircle_outline.Visible = false
                             end
                         else
                             drawings.headcircle.Visible = false
@@ -331,6 +333,8 @@ runservice.RenderStepped:Connect(function()
 
                                 drawings.box_outline.Thickness = drawings.full_box.Thickness * 2.5
                                 drawings.box_outline.Visible = true
+                            else
+                                drawings.box_outline.Visible = false
                             end
                         elseif esp.settings.box.mode == "corner" and drawings.corner_box then
                             drawings.full_box.Visible = false
@@ -393,9 +397,13 @@ runservice.RenderStepped:Connect(function()
                                 drawings.corner_box.br2_outline.Thickness = drawings.corner_box.br2.Thickness * 3
                             end
 
-                            for _, line in pairs(drawings.corner_box) do
-                                --line.Color = esp.settings.box.color
-                                line.Visible = true
+                            for name, line in pairs(drawings.corner_box) do
+                                if not string.find(name, "_outline") then
+                                    line.Color = esp.settings.box.color
+                                    line.Visible = true
+                                else
+                                    line.Visible = esp.settings.box.outline
+                                end
                             end
                         end
                     else
@@ -426,6 +434,8 @@ runservice.RenderStepped:Connect(function()
                                 drawings.lookangle_outline.To = Vector2.new(screenend.X, screenend.Y)
                                 drawings.lookangle_outline.Thickness = esp.settings.lookangle.thickness * 2.5
                                 drawings.lookangle_outline.Visible = true
+                            else
+                                drawings.lookangle_outline.Visible = false
                             end
                         else
                             drawings.lookangle.Visible = false
