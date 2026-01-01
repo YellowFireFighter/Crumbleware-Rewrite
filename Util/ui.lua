@@ -4,8 +4,8 @@ Library = {
     RiskColor = Color3.fromRGB(255,0,0);
     Pages = {};
     Sections = {};
-    flags = {};
-    UnNamedflags = 0;
+    Flags = {};
+    UnNamedFlags = 0;
     ThemeObjects = {};
     Holder = nil;
     OldParent = nil;
@@ -76,7 +76,7 @@ Library = {
     TweeningSpeed = 0.5;
 }
 
-local flags = {}; 
+local Flags = {}; 
 local Dropdowns = {}; 
 local Pickers = {}; 
 local VisValues = {}; 
@@ -159,8 +159,8 @@ do
     end
 
     function Library.NextFlag()
-        Library.UnNamedflags = Library.UnNamedflags + 1
-        return string.format("%.14g", Library.UnNamedflags)
+        Library.UnNamedFlags = Library.UnNamedFlags + 1
+        return string.format("%.14g", Library.UnNamedFlags)
     end
 
     function Library:Register_Font(Name, Weight, Style, Asset)
@@ -347,7 +347,7 @@ do
     
     function Library:GetConfig()
         local Config = ""
-        for Index, Value in pairs(self.flags) do
+        for Index, Value in pairs(self.Flags) do
             if
                 Index ~= "ConfigList"
                 and Index ~= "ConfigName"
@@ -446,11 +446,11 @@ do
         end
         
         for i, v in pairs(Table2) do
-            if flags[i] then
-                if typeof(flags[i]) == "table" then
-                    flags[i]:Set(v)
+            if Flags[i] then
+                if typeof(Flags[i]) == "table" then
+                    Flags[i]:Set(v)
                 else
-                    flags[i](v)
+                    Flags[i](v)
                 end
             end
         end
@@ -680,9 +680,9 @@ do
             AlphaSlide.Position = UDim2.new(math.clamp(alpha, 0.000, 0.982),0,0,0)
 
             if flag then
-                Library.flags[flag] = {} 
-                Library.flags[flag]["Color"] = Color3.fromRGB(hsv.r * 255, hsv.g * 255, hsv.b * 255)
-                Library.flags[flag]["Transparency"] = alpha
+                Library.Flags[flag] = {} 
+                Library.Flags[flag]["Color"] = Color3.fromRGB(hsv.r * 255, hsv.g * 255, hsv.b * 255)
+                Library.Flags[flag]["Transparency"] = alpha
             end
 
             callback(Color3.fromRGB(hsv.r * 255, hsv.g * 255, hsv.b * 255), alpha)
@@ -713,16 +713,16 @@ do
                 AlphaSlide.Position = UDim2.new(math.clamp(alpha, 0.000, 0.982),0,0,0)
 
                 if flag then
-                    Library.flags[flag] = {} 
-                    Library.flags[flag]["Color"] = Color3.fromRGB(hsv.r * 255, hsv.g * 255, hsv.b * 255)
-                    Library.flags[flag]["Transparency"] = alpha
+                    Library.Flags[flag] = {} 
+                    Library.Flags[flag]["Color"] = Color3.fromRGB(hsv.r * 255, hsv.g * 255, hsv.b * 255)
+                    Library.Flags[flag]["Transparency"] = alpha
                 end
 
                 callback(Color3.fromRGB(hsv.r * 255, hsv.g * 255, hsv.b * 255), alpha)
             end
         end
 
-        flags[flag] = set
+        Flags[flag] = set
 
         set(default, defaultalpha)
 
@@ -1854,7 +1854,7 @@ do
             Toggle.Toggled = not Toggle.Toggled
             TweenService:Create(Accent, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = Toggle.Toggled and 0 or 1}):Play()
             Accent.Transparency = Toggle.Toggled and 0 or 1
-            Library.flags[Toggle.Flag] = Toggle.Toggled
+            Library.Flags[Toggle.Flag] = Toggle.Toggled
             Toggle.Callback(Toggle.Toggled)
         end
         
@@ -2022,7 +2022,7 @@ do
                     if c then
                         c:Disconnect()
                         if Keybind.Flag then
-                            Library.flags[Keybind.Flag] = false
+                            Library.Flags[Keybind.Flag] = false
                         end
                         Keybind.Callback(false)
                     end
@@ -2035,7 +2035,7 @@ do
                         Key = nil
                         if Keybind.UseKey then
                             if Keybind.Flag then
-                                Library.flags[Keybind.Flag] = Key
+                                Library.Flags[Keybind.Flag] = Key
                             end
                             Keybind.Callback(Key)
                         end
@@ -2047,7 +2047,7 @@ do
                         Key = newkey
                         if Keybind.UseKey then
                             if Keybind.Flag then
-                                Library.flags[Keybind.Flag] = Key
+                                Library.Flags[Keybind.Flag] = Key
                             end
                             Keybind.Callback(Key)
                         end
@@ -2057,16 +2057,16 @@ do
                         ListValue:Update(text, Keybind.Name, Keybind.Mode)
                     end
 
-                    Library.flags[Keybind.Flag .. "_KEY"] = newkey
+                    Library.Flags[Keybind.Flag .. "_KEY"] = newkey
                 elseif table.find({ "Always", "Toggle", "Hold" }, newkey) then
                     if not Keybind.UseKey then
-                        Library.flags[Keybind.Flag .. "_KEY STATE"] = newkey
+                        Library.Flags[Keybind.Flag .. "_KEY STATE"] = newkey
                         Keybind.Mode = newkey
                         ListValue:Update((Library.Keys[Key] or tostring(Key):gsub("Enum.KeyCode.", "")), Keybind.Name, Keybind.Mode)
                         if Keybind.Mode == "Always" then
                             State = true
                             if Keybind.Flag then
-                                Library.flags[Keybind.Flag] = State
+                                Library.Flags[Keybind.Flag] = State
                             end
                             Keybind.Callback(true)
                             ListValue:SetVisible(true)
@@ -2075,7 +2075,7 @@ do
                 else
                     State = newkey
                     if Keybind.Flag then
-                        Library.flags[Keybind.Flag] = newkey
+                        Library.Flags[Keybind.Flag] = newkey
                     end
                     Keybind.Callback(newkey)
                 end
@@ -2109,7 +2109,7 @@ do
                 if (inp.KeyCode == Key or inp.UserInputType == Key) and not Keybind.Binding and not Keybind.UseKey and not gpe then
                     if Keybind.Mode == "Hold" then
                         if Keybind.Flag then
-                            Library.flags[Keybind.Flag] = true
+                            Library.Flags[Keybind.Flag] = true
                         end
                         if Keybind.Callback then
                             Keybind.Callback(true)
@@ -2118,7 +2118,7 @@ do
                     elseif Keybind.Mode == "Toggle" then
                         State = not State
                         if Keybind.Flag then
-                            Library.flags[Keybind.Flag] = State
+                            Library.Flags[Keybind.Flag] = State
                         end
                         Keybind.Callback(State)
                         ListValue:SetVisible(State)
@@ -2131,7 +2131,7 @@ do
                     if Key ~= "" or Key ~= nil then
                         if inp.KeyCode == Key or inp.UserInputType == Key then
                             if Keybind.Flag then
-                                Library.flags[Keybind.Flag] = false
+                                Library.Flags[Keybind.Flag] = false
                             end
                             if Keybind.Callback then
                                 Keybind.Callback(false)
@@ -2183,11 +2183,11 @@ do
                 end
             end)
             
-            Library.flags[Keybind.Flag .. "_KEY"] = Keybind.State
-            Library.flags[Keybind.Flag .. "_KEY STATE"] = Keybind.Mode
-            flags[Keybind.Flag] = set
-            flags[Keybind.Flag .. "_KEY"] = set
-            flags[Keybind.Flag .. "_KEY STATE"] = set
+            Library.Flags[Keybind.Flag .. "_KEY"] = Keybind.State
+            Library.Flags[Keybind.Flag .. "_KEY STATE"] = Keybind.Mode
+            Flags[Keybind.Flag] = set
+            Flags[Keybind.Flag .. "_KEY"] = set
+            Flags[Keybind.Flag .. "_KEY STATE"] = set
             
             function Keybind:Set(key)
                 set(key)
@@ -2267,8 +2267,8 @@ do
         end 
 
         Toggle.Set(Toggle.State)
-        Library.flags[Toggle.Flag] = Toggle.State
-        flags[Toggle.Flag] = Toggle.Set
+        Library.Flags[Toggle.Flag] = Toggle.State
+        Flags[Toggle.Flag] = Toggle.Set
 
 
         
@@ -2441,7 +2441,7 @@ do
             end
             Val = value
 
-            Library.flags[Slider.Flag] = value
+            Library.Flags[Slider.Flag] = value
             Slider.Callback(value)
         end				
         
@@ -2489,8 +2489,8 @@ do
             Title.Text = t
         end
         
-        flags[Slider.Flag] = Set
-        Library.flags[Slider.Flag] = Slider.State
+        Flags[Slider.Flag] = Set
+        Library.Flags[Slider.Flag] = Slider.State
         Set(Slider.State)
 
         
@@ -2743,7 +2743,7 @@ do
                         Library:Tween(accent, {BackgroundTransparency = 1})
                         Library:Tween(text, {Position = UDim2.new(0, 6, 0.5, 0)})
 
-                        Library.flags[Dropdown.Flag] = chosen
+                        Library.Flags[Dropdown.Flag] = chosen
                         Dropdown.Callback(chosen)
                     else
                         if #chosen == Dropdown.Max then
@@ -2767,7 +2767,7 @@ do
                         Library:Tween(accent, {BackgroundTransparency = 0})
                         Library:Tween(text, {Position = UDim2.new(0, 8, 0.5, 0)})
 
-                        Library.flags[Dropdown.Flag] = chosen
+                        Library.Flags[Dropdown.Flag] = chosen
                         Dropdown.Callback(chosen)
                     end
                 else
@@ -2782,7 +2782,7 @@ do
                     text.Position = UDim2.new(0, 8, 0.5, 0)
                     accent.BackgroundTransparency = 0
                     Dropdown.Fade(false)
-                    Library.flags[Dropdown.Flag] = option
+                    Library.Flags[Dropdown.Flag] = option
                     Dropdown.Callback(option)
                 end
             end)
@@ -2881,7 +2881,7 @@ do
 
                 Value.Text = #chosen == 0 and "" or table.concat(textchosen, ",") .. (cutobject and ", ..." or "")
 
-                Library.flags[Dropdown.Flag] = chosen
+                Library.Flags[Dropdown.Flag] = chosen
                 Dropdown.Callback(chosen)
             end
         end
@@ -2901,12 +2901,12 @@ do
                     Dropdown.OptionInsts[option].text.Position = UDim2.new(0, 8, 0.5, 0)
                     Dropdown.OptionInsts[option].accent.BackgroundTransparency = 0
                     Value.Text = option
-                    Library.flags[Dropdown.Flag] = chosen
+                    Library.Flags[Dropdown.Flag] = chosen
                     Dropdown.Callback(chosen)
                 else
                     chosen = nil
                     Value.Text = "None"
-                    Library.flags[Dropdown.Flag] = chosen
+                    Library.Flags[Dropdown.Flag] = chosen
                     Dropdown.Callback(chosen)
                 end
             end
@@ -2934,15 +2934,15 @@ do
                 chosen = nil
             end
 
-            Library.flags[Dropdown.Flag] = chosen
+            Library.Flags[Dropdown.Flag] = chosen
             Dropdown.Callback(chosen)
         end
 
         
         if Dropdown.Max then
-            flags[Dropdown.Flag] = set
+            Flags[Dropdown.Flag] = set
         else
-            flags[Dropdown.Flag] = Dropdown
+            Flags[Dropdown.Flag] = Dropdown
         end
         Dropdown:Set(Dropdown.State)
         return Dropdown
@@ -3284,7 +3284,7 @@ do
                 if c then
                     c:Disconnect()
                     if Keybind.Flag then
-                        Library.flags[Keybind.Flag] = false
+                        Library.Flags[Keybind.Flag] = false
                     end
                     Keybind.Callback(false)
                 end
@@ -3297,7 +3297,7 @@ do
                     Key = nil
                     if Keybind.UseKey then
                         if Keybind.Flag then
-                            Library.flags[Keybind.Flag] = Key
+                            Library.Flags[Keybind.Flag] = Key
                         end
                         Keybind.Callback(Key)
                     end
@@ -3311,7 +3311,7 @@ do
                     Key = newkey
                     if Keybind.UseKey then
                         if Keybind.Flag then
-                            Library.flags[Keybind.Flag] = Key
+                            Library.Flags[Keybind.Flag] = Key
                         end
                         Keybind.Callback(Key)
                     end
@@ -3323,10 +3323,10 @@ do
                     end
                 end
 
-                Library.flags[Keybind.Flag .. "_KEY"] = newkey
+                Library.Flags[Keybind.Flag .. "_KEY"] = newkey
             elseif table.find({ "Always", "Toggle", "Hold" }, newkey) then
                 if not Keybind.UseKey then
-                    Library.flags[Keybind.Flag .. "_KEY STATE"] = newkey
+                    Library.Flags[Keybind.Flag .. "_KEY STATE"] = newkey
                     Keybind.Mode = newkey
                     if not Keybind.Ignore then
                         ListValue:Update((Library.Keys[Key] or tostring(Key):gsub("Enum.KeyCode.", "")), Keybind.Name, Keybind.Mode)
@@ -3334,7 +3334,7 @@ do
                     if Keybind.Mode == "Always" then
                         State = true
                         if Keybind.Flag then
-                            Library.flags[Keybind.Flag] = State
+                            Library.Flags[Keybind.Flag] = State
                         end
                         Keybind.Callback(true)
                         ListValue:SetVisible(true)
@@ -3343,7 +3343,7 @@ do
             else
                 State = newkey
                 if Keybind.Flag then
-                    Library.flags[Keybind.Flag] = newkey
+                    Library.Flags[Keybind.Flag] = newkey
                 end
                 Keybind.Callback(newkey)
             end
@@ -3377,7 +3377,7 @@ do
             if (inp.KeyCode == Key or inp.UserInputType == Key) and not Keybind.Binding and not Keybind.UseKey and not gpe then
                 if Keybind.Mode == "Hold" then
                     if Keybind.Flag then
-                        Library.flags[Keybind.Flag] = true
+                        Library.Flags[Keybind.Flag] = true
                     end
                     c = Library:Connection(game:GetService("RunService").RenderStepped, function()
                         if Keybind.Callback then
@@ -3390,7 +3390,7 @@ do
                 elseif Keybind.Mode == "Toggle" then
                     State = not State
                     if Keybind.Flag then
-                        Library.flags[Keybind.Flag] = State
+                        Library.Flags[Keybind.Flag] = State
                     end
                     Keybind.Callback(State)
                     if not Keybind.Ignore then
@@ -3407,7 +3407,7 @@ do
                         if c then
                             c:Disconnect()
                             if Keybind.Flag then
-                                Library.flags[Keybind.Flag] = false
+                                Library.Flags[Keybind.Flag] = false
                             end
                             if Keybind.Callback then
                                 Keybind.Callback(false)
@@ -3462,11 +3462,11 @@ do
             end
         end)
         
-        Library.flags[Keybind.Flag .. "_KEY"] = Keybind.State
-        Library.flags[Keybind.Flag .. "_KEY STATE"] = Keybind.Mode
-        flags[Keybind.Flag] = set
-        flags[Keybind.Flag .. "_KEY"] = set
-        flags[Keybind.Flag .. "_KEY STATE"] = set
+        Library.Flags[Keybind.Flag .. "_KEY"] = Keybind.State
+        Library.Flags[Keybind.Flag .. "_KEY STATE"] = Keybind.Mode
+        Flags[Keybind.Flag] = set
+        Flags[Keybind.Flag .. "_KEY"] = set
+        Flags[Keybind.Flag .. "_KEY STATE"] = set
         
         function Keybind:Set(key)
             set(key)
@@ -3601,12 +3601,12 @@ do
         
         Value.FocusLost:Connect(function()
             Textbox.Callback(Value.Text)
-            Library.flags[Textbox.Flag] = Value.Text
+            Library.Flags[Textbox.Flag] = Value.Text
         end)
         
         local function set(str)
             Value.Text = str
-            Library.flags[Textbox.Flag] = str
+            Library.Flags[Textbox.Flag] = str
             Textbox.Callback(str)
         end
 
@@ -3615,7 +3615,7 @@ do
         end
 
         
-        flags[Textbox.Flag] = set
+        Flags[Textbox.Flag] = set
         return Textbox
     end
     
@@ -3908,7 +3908,7 @@ do
         local function handleoptionclick(option, button, accent)
             button.MouseButton1Click:Connect(function()
                 chosen = option
-                Library.flags[Playerlist.Flag] = option
+                Library.Flags[Playerlist.Flag] = option
                 Playerlist.CurrentPlayer = option
                 
                 for opt, tbl in next, optioninstances do
@@ -4021,7 +4021,7 @@ do
             else
                 chosen = nil
             end
-            Library.flags[Playerlist.Flag] = chosen
+            Library.Flags[Playerlist.Flag] = chosen
             Playerlist.CurrentPlayer = nil
         end
         
