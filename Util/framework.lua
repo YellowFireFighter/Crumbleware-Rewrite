@@ -3,6 +3,7 @@ local framework = {}
 framework.debug = true
 
 framework.player = nil
+framework.character = nil
 framework.players = {}
 framework.instances = {}
 framework.connections = {}
@@ -71,7 +72,7 @@ function framework:instance(type, props)
             end
         end
 
-        self.instances[#self.instances + 1] = instance
+        table.insert(self.instances, instance)
     else
         self:info("instance failed " .. err)
     end
@@ -94,20 +95,22 @@ function framework:addplayer(player)
         self.connections[player.Name .. "a"] = player.CharacterAdded:Connect(function()
             self:updateplayer(player)
 
-            repeat wait() until not player.Character or player.Character and not player.Character:FindFirstChild("Head")
+            repeat task.wait() until not player.Character or player.Character and not player.Character:FindFirstChild("Head")
 
             self:updateplayer(player)
         end)
 
         self.connections[player.Name .. "r"] = player.CharacterRemoving:Connect(function()
-            task.wait(1)
-            self:updateplayer(player)
+            task.spawn(function()
+                task.wait(1)
+                self:updateplayer(player)
+            end)
         end)
 
         self:info("add player " .. player.Name)
 
         task.spawn(function()
-            repeat wait() until player.Character and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("HumanoidRootPart")
+            repeat task.wait() until player.Character and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("HumanoidRootPart")
             self:updateplayer(player)
         end)
     else
@@ -209,7 +212,7 @@ function framework:unload()
         end)
 
         if not suc then
-            self:info("failed remove instance " .. instance)
+            self:info("failed remove instance " .. tostring(instance))
         end
     end
 
@@ -217,6 +220,50 @@ function framework:unload()
 end
 
 framework.player = players.LocalPlayer
+
+if framework.player.Character then
+    framework.character = framework.player.Character
+    local root = framework.character:FindFirstChild("HumanoidRootPart")
+    
+    if not root then
+        framework.character = false
+    end
+
+    task.spawn(function()
+        repeat task.wait() until framework.character == nil or framework.character == false or not framework.character:FindFirstChild("HumanoidRootPart")
+        framework.character = false
+    end)
+else
+    framework.character = false
+end
+
+framework.connec_funcs["localcharacteradded"] = { }
+framework.connections["localcharacteradded"] = framework.player.CharacterAdded:Connect(function(character)
+    for index,func in pairs(framework.connec_funcs["localcharacteradded"]) do
+        if typeof(func) == "function" then
+            func(character)
+        end
+    end
+
+    repeat task.wait() until character:FindFirstChild("Humanoid")
+    repeat task.wait() until character:FindFirstChild("HumanoidRootPart")
+
+    framework.character = character
+
+    repeat task.wait() until character == nil or not character:FindFirstChild("HumanoidRootPart")
+    framework.character = false
+end)
+
+framework.connec_funcs["localcharacterremoving"] = { }
+framework.connections["localcharacterremoving"] = framework.player.CharacterRemoving:Connect(function()
+    framework.character = false
+
+    for index,func in pairs(framework.connec_funcs["localcharacterremoving"]) do
+        if typeof(func) == "function" then
+            func()
+        end
+    end
+end)
 
 framework.connec_funcs["playeradded"] = { }
 framework.connections["playeradded"] = players.PlayerAdded:Connect(function(player)
@@ -240,6 +287,18 @@ framework.connections["playerremoving"] = players.PlayerRemoving:Connect(functio
     end
 end)
 
-framework:init()
-
-return framework
+return function(options)
+    options = options or {}
+    
+    for key, value in pairs(options) do
+        if framework[key] ~= nil then
+            framework[key] = value
+        end
+    end
+    
+    if options.auto_init ~= false then
+        framework:init()
+    end
+    
+    return framework
+end
