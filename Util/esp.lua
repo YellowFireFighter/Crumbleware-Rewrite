@@ -1,6 +1,6 @@
 local esp = { }
 
-local framework = loadstring(request({Url = "https://raw.githubusercontent.com/YellowFireFighter/Crumbleware-Rewrite/refs/heads/main/Util/framework.lua", Method = "Get"}).Body)()
+local framework = loadstring(request({Url = "https://raw.githubusercontent.com/YellowFireFighter/Crumbleware-Rewrite/refs/heads/main/Util/framework.lua", Method = "Get"}).Body)()({debug = true})
 local font = Drawing.Fonts.new(request({Url = "https://github.com/YellowFireFighter/Crumbleware-Rewrite/raw/refs/heads/main/Util/font.ttf", Method = "Get"}).Body)
 
 local workspace = framework.services.workspace
