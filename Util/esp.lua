@@ -162,9 +162,13 @@ runservice.RenderStepped:Connect(function()
                 if humanoid.Health > 0 and esp.settings.fade.fadein and data.faded then
                     data.faded = false
                     esp:fadeplayer(player, 1)
-                elseif humanoid.Health <= 0 and esp.settings.fade.fadeout and not data.faded then
+                elseif humanoid.Health <= 0 and not data.faded then
                     data.faded = true
-                    esp:fadeplayer(player, 0)
+                    if esp.settings.fade.fadeout then
+                        esp:fadeplayer(player, 0)
+                    else
+                        esp:setvis(player, false)
+                    end
                 end
 
                 local minX, minY = math.huge, math.huge
@@ -449,9 +453,13 @@ runservice.RenderStepped:Connect(function()
                     esp:setvis(player, false)
                 end
             else
-                if esp.settings.fade.fadeout and not data.faded then
+                if not data.faded then
                     data.faded = true
-                    esp:fadeplayer(player, 0)
+                    if esp.settings.fade.fadeout then
+                        esp:fadeplayer(player, 0)
+                    else
+                        esp:setvis(player, false)
+                    end
                 end
             end
         else
