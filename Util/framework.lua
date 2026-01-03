@@ -1,6 +1,6 @@
 local framework = {}
 
-framework.debug = false
+framework.debug = true
 
 framework.player = nil
 framework.character = nil
@@ -123,7 +123,7 @@ function framework:_cleanupDrawings(tbl)
         if typeof(v) == "table" then
             self:_cleanupDrawings(v)
             tbl[k] = nil
-        elseif typeof(v) == "userdata" then
+        else
             pcall(function()
                 v:Remove()
             end)
