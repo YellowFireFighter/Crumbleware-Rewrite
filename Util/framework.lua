@@ -1,6 +1,6 @@
 local framework = {}
 
-framework.debug = true
+framework.debug = false
 
 framework.player = nil
 framework.character = nil
