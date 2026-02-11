@@ -1,7 +1,7 @@
 local esp = { }
 
 local framework = loadstring(request({Url = "https://raw.githubusercontent.com/YellowFireFighter/Crumbleware-Rewrite/refs/heads/main/Util/framework.lua", Method = "Get"}).Body)()({debug = false})
-local font = Drawing.Fonts.new(request({Url = "https://github.com/YellowFireFighter/Crumbleware-Rewrite/raw/refs/heads/main/Util/font.ttf", Method = "Get"}).Body)
+local font = 1--Drawing.Fonts.new(request({Url = "https://github.com/YellowFireFighter/Crumbleware-Rewrite/raw/refs/heads/main/Util/font.ttf", Method = "Get"}).Body)
 
 local workspace = framework.services.workspace
 local camera = framework.services.camera
