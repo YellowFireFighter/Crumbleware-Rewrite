@@ -364,7 +364,7 @@ runservice.RenderStepped:Connect(function()
                     if esp.settings.weapon.enabled then
                         drawings.weapon.Position = Vector2.new(centerX, bottomright.Y + (boxheight * 0.005))
                         local tool = esp:gettool(player)
-                        drawings.weapon.Text = tool and "[ " .. tool.Name .. " ]" or "[none]"
+                        drawings.weapon.Text = tool and "[" .. tool.Name .. "]" or "[none]"
                         if drawings.weapon.Color ~= esp.settings.weapon.color then
                             drawings.weapon.Color = esp.settings.weapon.color
                         end
