@@ -1,6 +1,6 @@
 local esp = { }
 
-local framework = loadstring(request({Url = "https://raw.githubusercontent.com/YellowFireFighter/Crumbleware-Rewrite/refs/heads/main/Util/framework.lua", Method = "Get"}).Body)()({debug = true})
+local framework = loadstring(request({Url = "https://raw.githubusercontent.com/YellowFireFighter/Crumbleware-Rewrite/refs/heads/main/Util/framework.lua", Method = "Get"}).Body)()({debug = false})
 local font = 1--Drawing.Fonts.new(request({Url = "https://github.com/YellowFireFighter/Crumbleware-Rewrite/raw/refs/heads/main/Util/font.ttf", Method = "Get"}).Body)
 
 local workspace = framework.services.workspace
@@ -33,14 +33,14 @@ esp.settings = {
 esp.health_lerp = { }
 
 local games = {
-    ["pd"] = 2862098693,
-    ["ls"] = 4712109542,
-    ["bb"] = 4154513353,
-    ["ar"] = 9627238969,
-    ["vs"] = 9224753153
+    [2862098693] = "pd",
+    [4712109542] = "ls",
+    [4154513353] = "bb",
+    [9627238969] = "ar", 
+    [9224753153] = "vs"
 }
 
-local game = games[game.GameId] or "uni"
+local Game = games[game.GameId] or "uni"
 
 function esp:initplayer(player)
     if player and player ~= framework.player then
@@ -190,7 +190,7 @@ end
 function esp:gettool(player)
     player = player or framework.player
 
-    if game == "vs" then
+    if Game == "vs" then
         if player and player.Character then
             return player.Character:FindFirstChildWhichIsA("Tool")
         end
@@ -202,7 +202,7 @@ end
 runservice.RenderStepped:Connect(function()
     for player,data in pairs(framework.players) do
         if esp.settings.enabled and not data.client then
-            if data.spawned and data.character:FindFirstChild("Humanoid") and data.character:FindFirstChild("Head") then
+            if data.spawned and data.character:FindFirstChild("HumanoidRootPart") then
                 local character = data.character
                 local root = data.root
                 local head = character.Head
@@ -210,15 +210,15 @@ runservice.RenderStepped:Connect(function()
                 local humanoid = character.Humanoid
                 local drawings = data.drawings
 
-                local distance = framework.player.Character and framework.player.Character:FindFirstChild("HumanoidRootPart") 
+                local distance = framework.player.Character and framework.player.Character.HumanoidRootPart
                     and (root.Position - framework.player.Character.HumanoidRootPart.Position).Magnitude 
                     or 0
 
-                if game == "pd" then
+                if Game == "pd" then
                     distance = distance / 3
                 end
 
-                if esp.settings.maxdis ~= 0 and distance > esp.settings.maxdis then continue end
+                if esp.settings.maxdis ~= 0 and distance > esp.settings.maxdis then esp:setvis(player, false) continue end
 
                 if humanoid.Health > 0 and esp.settings.fade.fadein and data.faded then
                     data.faded = false
