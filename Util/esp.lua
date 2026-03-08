@@ -190,9 +190,17 @@ end
 function esp:gettool(player)
     player = player or framework.player
 
-    if Game == "vs" then
+    if Game == "vs" or Game == "bb" then
         if player and player.Character then
             return player.Character:FindFirstChildWhichIsA("Tool")
+        end
+    elseif Game == "pd" then
+        if player and player.Character then
+            for i,v in pairs(player.Character:GetChildren()) do
+                if v:FindFirstChild("ItemRoot") then
+                    return v.Name
+                end
+            end
         end
     end
 
@@ -202,7 +210,7 @@ end
 runservice.RenderStepped:Connect(function()
     for player,data in pairs(framework.players) do
         if esp.settings.enabled and not data.client then
-            if data.spawned and data.character:FindFirstChild("HumanoidRootPart") then
+            if data.spawned and data.character:FindFirstChild("HumanoidRootPart") and data.character:FindFirstChild("Humanoid") then
                 local character = data.character
                 local root = data.root
                 local head = character.Head
