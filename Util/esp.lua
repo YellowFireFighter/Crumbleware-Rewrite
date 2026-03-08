@@ -198,7 +198,7 @@ function esp:gettool(player)
         if player and player.Character then
             for i,v in pairs(player.Character:GetChildren()) do
                 if v:FindFirstChild("ItemRoot") then
-                    return v.Name
+                    return v
                 end
             end
         end
