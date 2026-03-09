@@ -649,11 +649,9 @@ runservice.RenderStepped:Connect(function()
                 else
                     if not data.faded then
                         data.faded = true
-                        if esp.settings.fade.fadeout then
-                            esp:fadeplayer(player, 0)
-                        else
-                            esp:setvis(player, false)
-                        end
+                        esp:setvis(player, false)
+                    else
+                        esp:setvis(player, false)
                     end
                 end
             else
@@ -875,11 +873,7 @@ runservice.RenderStepped:Connect(function()
                 else
                     if not data.faded then
                         data.faded = true
-                        if esp.settings.fade.fadeout then
-                            esp:fadeplayer(npc, 0)
-                        else
-                            esp:setvis(npc, false)
-                        end
+                        esp:setvis(npc, false)
                     else
                         esp:setvis(npc, false)
                     end
