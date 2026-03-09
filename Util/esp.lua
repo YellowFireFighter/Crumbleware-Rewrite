@@ -158,7 +158,6 @@ function esp:calcbounds(character, isR15)
         if part then
             local s, on = camera:WorldToViewportPoint(part.Position)
             if on then
-                onscreen = true
                 local sideX = camera:WorldToViewportPoint(part.Position + Vector3.new(padding.X, 0, 0))
                 local sideZ = camera:WorldToViewportPoint(part.Position + Vector3.new(0, 0, padding.Z))
                 local screenPad = math.max(math.abs(sideX.X - s.X), math.abs(sideZ.X - s.X))
@@ -173,7 +172,6 @@ function esp:calcbounds(character, isR15)
         if part then
             local s, on = camera:WorldToViewportPoint(part.Position)
             if on then
-                onscreen = true
                 local bot = camera:WorldToViewportPoint(part.Position - Vector3.new(0, part.Size.Y / 2, 0))
                 maxY = math.max(maxY, bot.Y)
             end
