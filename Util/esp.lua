@@ -256,6 +256,14 @@ function esp:fadeplayer(entity, transparency)
     end)
 end
 
+function esp:checkvis(entity)
+    local data = esp:getdata(entity)
+    if not data or not data.drawings then return false end
+    if not data.drawings.name then return false end
+
+    return data.drawings.name.Visible
+end
+
 function esp:gettool(player)
     player = player or framework.player
 
@@ -644,13 +652,13 @@ runservice.RenderStepped:Connect(function()
                         drawings.lookangle_outline.Visible = false
                     end
                 else
-                    if not data.faded then
+                    if esp:checkvis(player) then
                         data.faded = true
                         esp:setvis(player, false)
                     end
                 end
             else
-                if not data.faded then
+                if esp:checkvis(player) then
                     data.faded = true
                     if esp.settings.fade.fadeout then
                         esp:fadeplayer(player, 0)
@@ -660,7 +668,7 @@ runservice.RenderStepped:Connect(function()
                 end
             end
         else
-            if not data.faded then
+            if esp:checkvis(player) then
                 data.faded = true
                 esp:setvis(player, false)
             end
@@ -866,13 +874,13 @@ runservice.RenderStepped:Connect(function()
                         drawings.lookangle_outline.Visible = false
                     end
                 else
-                    if not data.faded then
+                    if esp:checkvis(npc) then
                         data.faded = true
                         esp:setvis(npc, false)
                     end
                 end
             else
-                if not data.faded then
+                if esp:checkvis(npc) then
                     data.faded = true
                     if esp.settings.fade.fadeout then
                         esp:fadeplayer(npc, 0)
@@ -882,7 +890,9 @@ runservice.RenderStepped:Connect(function()
                 end
             end
         else
-            esp:setvis(npc, false)
+            if esp:checkvis(npc) then
+                esp:setvis(npc, false)
+            end
         end
     end
 end)
