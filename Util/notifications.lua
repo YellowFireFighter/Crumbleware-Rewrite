@@ -13,7 +13,7 @@ local alerts = {}
 local SLIDE_START, FADE_SPEED, SLIDE_SPEED = -80, 3, 8
 
 local function refresh_positions()
-    local y = 30
+    local y = 60
     for _, e in ipairs(alerts) do
         if e.state ~= "out" then
             e.target_y = y
