@@ -14,20 +14,20 @@ local runservice = framework.services.runservice
 local inputservice = framework.services.inputservice
 
 esp.settings = {
-    enabled = true,
+    enabled = false,
     maxdis = 0,
     fade = {
         fadetime = 1,
         fadein = false,
         fadeout = false
     },
-    box = {enabled = true, outline = false, mode = "corner", color = Color3.fromRGB(255,255,255)},
-    healthbar = {enabled = true, lerp = false, width = 3, full_color = Color3.fromRGB(0,255,0), empty_color = Color3.fromRGB(255,0,0)},
-    name = {enabled = true, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
-    distance = {enabled = true, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
-    weapon = {enabled = true, size = 13, outline = false, color = Color3.fromRGB(255,0,0)},
-    lookangle = {enabled = true, length = 4, thickness = 1.5, outline = false, color = Color3.fromRGB(255,255,255)},
-    headcircle = {enabled = true, radius = 14, outline = false, color = Color3.fromRGB(255,255,255)},
+    box = {enabled = false, outline = false, mode = "corner", color = Color3.fromRGB(255,255,255)},
+    healthbar = {enabled = false, lerp = false, width = 3, full_color = Color3.fromRGB(0,255,0), empty_color = Color3.fromRGB(255,0,0)},
+    name = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+    distance = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+    weapon = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,0,0)},
+    lookangle = {enabled = false, length = 4, thickness = 1.5, outline = false, color = Color3.fromRGB(255,255,255)},
+    headcircle = {enabled = false, radius = 14, outline = false, color = Color3.fromRGB(255,255,255)},
 }
 
 local games = {
@@ -43,14 +43,14 @@ local Game = games[game.GameId] or "uni"
 if Game == "pd" then
     esp.settings.pd_settings = {
         npc = {
-            enabled = true,
+            enabled = false,
             maxdis = 0,
-            box = {enabled = true, outline = false, mode = "corner", color = Color3.fromRGB(255,0,0)},
-            healthbar = {enabled = true, lerp = false, width = 3, full_color = Color3.fromRGB(0,255,0), empty_color = Color3.fromRGB(255,0,0)},
-            name = {enabled = true, size = 13, outline = false, color = Color3.fromRGB(255,0,0)},
-            distance = {enabled = true, size = 13, outline = false, color = Color3.fromRGB(255,0,0)},
-            lookangle = {enabled = true, length = 4, thickness = 1.5, outline = false, color = Color3.fromRGB(255,0,0)},
-            headcircle = {enabled = true, radius = 14, outline = false, color = Color3.fromRGB(255,0,0)},
+            box = {enabled = false, outline = false, mode = "corner", color = Color3.fromRGB(255,0,0)},
+            healthbar = {enabled = false, lerp = false, width = 3, full_color = Color3.fromRGB(0,255,0), empty_color = Color3.fromRGB(255,0,0)},
+            name = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,0,0)},
+            distance = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,0,0)},
+            lookangle = {enabled = false, length = 4, thickness = 1.5, outline = false, color = Color3.fromRGB(255,0,0)},
+            headcircle = {enabled = false, radius = 14, outline = false, color = Color3.fromRGB(255,0,0)},
         },
 
         item = {
