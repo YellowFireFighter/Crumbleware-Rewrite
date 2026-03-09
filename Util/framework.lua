@@ -1,6 +1,6 @@
 local framework = {}
 
-framework.debug = false
+framework.debug = true
 
 framework.player = nil
 framework.character = nil
@@ -16,6 +16,7 @@ local players = cloneref(game:GetService("Players"))
 local replicatedstorage = cloneref(game:GetService("ReplicatedStorage"))
 local runservice = cloneref(game:GetService("RunService"))
 local inputservice = cloneref(game:GetService("UserInputService"))
+local lighting = cloneref(game:GetService("Lighting"))
 local camera = workspace.CurrentCamera
 
 framework.services.workspace = workspace
@@ -24,6 +25,7 @@ framework.services.replicatedstorage = replicatedstorage
 framework.services.runservice = runservice
 framework.services.inputservice = inputservice
 framework.services.camera = camera
+framework.services.lighting = lighting
 
 function framework:info(info)
     if self.debug then
