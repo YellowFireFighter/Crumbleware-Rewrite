@@ -265,7 +265,7 @@ function esp:checkvis(entity)
     if not data or not data.drawings then return false end
     if not data.drawings.name then return false end
 
-    return data.drawings.name.Visible
+    return data.drawings.name.Visible or data.drawings.corner_box[1].Visible
 end
 
 function esp:gettool(player)
