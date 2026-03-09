@@ -200,6 +200,7 @@ end
 function esp:setvis(entity, vis)
     local data = esp:getdata(entity)
     if not data or not data.drawings then return end
+    if data.drawings.name.Visible == vis then return end
 
     for _, drawing in pairs(data.drawings) do
         if typeof(drawing) ~= "table" then
@@ -249,7 +250,9 @@ function esp:fadeplayer(entity, transparency)
 
             if t >= 1 then
                 cache = nil
-                esp:setvis(entity, transparency == 1)
+                if data._fadetoken == token then
+                    esp:setvis(entity, transparency == 1)
+                end
                 break
             end
         end
@@ -644,7 +647,14 @@ runservice.RenderStepped:Connect(function()
                         drawings.lookangle_outline.Visible = false
                     end
                 else
-                    esp:setvis(player, false)
+                    if not data.faded then
+                        data.faded = true
+                        if esp.settings.fade.fadeout then
+                            esp:fadeplayer(player, 0)
+                        else
+                            esp:setvis(player, false)
+                        end
+                    end
                 end
             else
                 if not data.faded then
@@ -657,7 +667,10 @@ runservice.RenderStepped:Connect(function()
                 end
             end
         else
-            esp:setvis(player, false)
+            if not data.faded then
+                data.faded = true
+                esp:setvis(player, false)
+            end
         end
     end
 
@@ -867,6 +880,8 @@ runservice.RenderStepped:Connect(function()
                         else
                             esp:setvis(npc, false)
                         end
+                    else
+                        esp:setvis(npc, false)
                     end
                 end
             else
