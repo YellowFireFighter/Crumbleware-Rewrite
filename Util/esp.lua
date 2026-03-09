@@ -662,7 +662,12 @@ runservice.RenderStepped:Connect(function()
     end
 
     for npc, data in pairs(framework.npcs) do
-        local ns = esp.settings.pd_settings.npc
+        local ns;
+        if Game == "pd" then
+            ns = esp.settings.pd_settings.npc
+        else
+            ns = esp.settings.npc
+        end
 
         if ns.enabled and framework.player.Character then
             if ns and not ns.enabled then
