@@ -137,7 +137,7 @@ function esp:calcbounds(character, isR15)
     local onscreen = false
 
     local headScreen, headOnScreen = camera:WorldToViewportPoint(head.Position)
-    if headOnScreen then
+    if headOnScreen and s.Z > 0 then
         onscreen = true
         local headTop = camera:WorldToViewportPoint(head.Position + Vector3.new(0, head.Size.Y / 2, 0))
         minY = headTop.Y
@@ -176,6 +176,10 @@ function esp:calcbounds(character, isR15)
                 maxY = math.max(maxY, bot.Y)
             end
         end
+    end
+
+    if minX == math.huge or maxX == -math.huge or minY == math.huge or maxY == -math.huge then
+        onscreen = false
     end
 
     local topleft     = Vector2.new(math.floor(minX), math.floor(minY))
