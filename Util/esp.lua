@@ -14,20 +14,20 @@ local runservice = framework.services.runservice
 local inputservice = framework.services.inputservice
 
 esp.settings = {
-    enabled = false,
+    enabled = true,
     maxdis = 0,
     fade = {
         fadetime = 1,
         fadein = false,
         fadeout = false
     },
-    box = {enabled = false, outline = false, mode = "full", color = Color3.fromRGB(255,255,255)},
-    healthbar = {enabled = false, lerp = false, width = 3, full_color = Color3.fromRGB(0,255,0), empty_color = Color3.fromRGB(255,0,0)},
-    name = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
-    distance = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
-    weapon = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,0,0)},
-    lookangle = {enabled = false, length = 4, thickness = 1.5, outline = false, color = Color3.fromRGB(255,255,255)},
-    headcircle = {enabled = false, radius = 14, outline = false, color = Color3.fromRGB(255,255,255)},
+    box = {enabled = true, outline = false, mode = "corner", color = Color3.fromRGB(255,255,255)},
+    healthbar = {enabled = true, lerp = false, width = 3, full_color = Color3.fromRGB(0,255,0), empty_color = Color3.fromRGB(255,0,0)},
+    name = {enabled = true, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+    distance = {enabled = true, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+    weapon = {enabled = true, size = 13, outline = false, color = Color3.fromRGB(255,0,0)},
+    lookangle = {enabled = true, length = 4, thickness = 1.5, outline = false, color = Color3.fromRGB(255,255,255)},
+    headcircle = {enabled = true, radius = 14, outline = false, color = Color3.fromRGB(255,255,255)},
 }
 
 local games = {
@@ -40,22 +40,35 @@ local games = {
 
 local Game = games[game.GameId] or "uni"
 
-if game == "pd" then
+if Game == "pd" then
     esp.settings.pd_settings = {
-        includeai = false,
-        ai_override = false,
-        ai_color_override = Color3.fromRGB(255,0,0),
+        npc = {
+            enabled = true,
+            maxdis = 0,
+            box = {enabled = true, outline = false, mode = "corner", color = Color3.fromRGB(255,0,0)},
+            healthbar = {enabled = true, lerp = false, width = 3, full_color = Color3.fromRGB(0,255,0), empty_color = Color3.fromRGB(255,0,0)},
+            name = {enabled = true, size = 13, outline = false, color = Color3.fromRGB(255,0,0)},
+            distance = {enabled = true, size = 13, outline = false, color = Color3.fromRGB(255,0,0)},
+            lookangle = {enabled = true, length = 4, thickness = 1.5, outline = false, color = Color3.fromRGB(255,0,0)},
+            headcircle = {enabled = true, radius = 14, outline = false, color = Color3.fromRGB(255,0,0)},
+        },
 
-        droppeditems = false,
-        droppeditems_name = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
-        droppeditems_distance = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
-        droppeditems_price = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+        item = {
+            enabled = false,
+            maxdis = 0,
+            name = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+            distance = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+            price = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+        },
 
-        corpse = false,
-        corpse_min = 50000,
-        corpse_name = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
-        corpse_distance = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
-        corpse_value = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+        corpse = {
+            enabled = false,
+            maxdis = 0,
+            corpse_min = 50000,
+            corpse_name = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+            corpse_distance = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+            corpse_value = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+        }
     }
 end
 
@@ -186,15 +199,17 @@ end
 
 function esp:setvis(entity, vis)
     local data = esp:getdata(entity)
-    if not data then return end
+    if not data or not data.drawings then return end
 
     for _, drawing in pairs(data.drawings) do
         if typeof(drawing) ~= "table" then
             drawing.Visible = vis
         end
     end
-    for _, line in pairs(data.drawings.corner_box) do
-        line.Visible = vis
+    if data.drawings.corner_box then
+        for _, line in pairs(data.drawings.corner_box) do
+            line.Visible = vis
+        end
     end
 end
 
@@ -205,23 +220,27 @@ function esp:fadeplayer(entity, transparency)
         return
     end
 
+    -- cancel any active fade
+    local token = {}
+    data._fadetoken = token
+
     local cache = {}
     for _, drawing in pairs(data.drawings) do
         if typeof(drawing) ~= "table" then
-            cache[#cache + 1] = {drawing = drawing, start = 1 - transparency}
+            cache[#cache + 1] = {drawing = drawing, start = drawing.Transparency}
         end
     end
-    for _, drawing in pairs(data.drawings.corner_box) do
-        cache[#cache + 1] = {drawing = drawing, start = 1 - transparency}
+    if data.drawings.corner_box then
+        for _, drawing in pairs(data.drawings.corner_box) do
+            cache[#cache + 1] = {drawing = drawing, start = drawing.Transparency}
+        end
     end
 
     local start = os.clock()
     task.spawn(function()
-        for _, d in pairs(cache) do
-            d.drawing.Transparency = 1 - transparency
-        end
-
         while task.wait() do
+            if data._fadetoken ~= token then break end -- cancelled
+
             local t = math.clamp((os.clock() - start) / self.settings.fade.fadetime, 0, 1)
 
             for _, d in pairs(cache) do
@@ -323,6 +342,8 @@ runservice.RenderStepped:Connect(function()
                 if humanoid.Health > 0 and esp.settings.fade.fadein and data.faded then
                     data.faded = false
                     esp:fadeplayer(player, 1)
+                elseif humanoid.Health > 0 and not esp.settings.fade.fadein and data.faded then
+                    data.faded = false
                 elseif humanoid.Health <= 0 and not data.faded then
                     if esp.settings.fade.fadeout then
                         data.faded = true
@@ -486,11 +507,6 @@ runservice.RenderStepped:Connect(function()
                         elseif esp.settings.box.mode == "corner" and drawings.corner_box then
                             drawings.full_box.Visible = false
                             drawings.box_outline.Visible = false
-
-                            local tl = Vector2.new(math.floor(minX), math.floor(minY))
-                            local tr = Vector2.new(math.floor(maxX), math.floor(minY))
-                            local bl = Vector2.new(math.floor(minX), math.floor(maxY))
-                            local br = Vector2.new(math.floor(maxX), math.floor(maxY))
                             local cb = drawings.corner_box
 
                             local line_size = math.min((br.X - tl.X) / 4, (br.Y - tl.Y) / 4)
@@ -646,9 +662,13 @@ runservice.RenderStepped:Connect(function()
     end
 
     for npc, data in pairs(framework.npcs) do
-        if esp.settings.enabled and framework.player.Character then
-            local pd = esp.settings.pd_settings
-            local npcColor = (pd and pd.ai_override) and pd.ai_color_override or esp.settings.box.color
+        local ns = esp.settings.pd_settings.npc
+
+        if ns.enabled and framework.player.Character then
+            if ns and not ns.enabled then
+                esp:setvis(npc, false)
+                continue
+            end
 
             if npc and npc.Parent and npc:FindFirstChild("HumanoidRootPart") and npc:FindFirstChild("Humanoid") and npc:FindFirstChild("Head") then
                 local head = npc.Head
@@ -659,7 +679,7 @@ runservice.RenderStepped:Connect(function()
                 local distance = (root.Position - framework.player.Character.HumanoidRootPart.Position).Magnitude
                 if Game == "pd" then distance = distance / 3 end
 
-                if esp.settings.maxdis ~= 0 and distance > esp.settings.maxdis then
+                if ns.maxdis ~= 0 and distance > ns.maxdis then
                     esp:setvis(npc, false)
                     continue
                 end
@@ -667,13 +687,10 @@ runservice.RenderStepped:Connect(function()
                 if humanoid.Health > 0 and esp.settings.fade.fadein and data.faded then
                     data.faded = false
                     esp:fadeplayer(npc, 1)
+                elseif humanoid.Health > 0 and not esp.settings.fade.fadein and data.faded then
+                    data.faded = false
                 elseif humanoid.Health <= 0 and not data.faded then
                     data.faded = true
-                    task.spawn(function()
-                        wait(5)
-                        framework:_cleanupDrawings(npc.drawings)
-                        framework.npcs[npc] = nil
-                    end)
                     if esp.settings.fade.fadeout then
                         esp:fadeplayer(npc, 0)
                     else
@@ -690,20 +707,20 @@ runservice.RenderStepped:Connect(function()
                 local br = bottomright
 
                 if onscreen then
-                    if esp.settings.name.enabled then
+                    if ns.name.enabled then
                         drawings.name.Position = Vector2.new(centerX, topleft.Y - drawings.name.TextBounds.Y - 4)
                         drawings.name.Text = npc.Name
-                        drawings.name.Color = npcColor
-                        drawings.name.Outline = esp.settings.name.outline
-                        drawings.name.Size = esp.settings.name.size
+                        drawings.name.Color = ns.name.color
+                        drawings.name.Outline = ns.name.outline
+                        drawings.name.Size = ns.name.size
                         drawings.name.Visible = true
                     else drawings.name.Visible = false end
 
-                    if esp.settings.distance.enabled then
+                    if ns.distance.enabled then
                         drawings.distance.Text = tostring(math.round(distance)) .. "m"
-                        drawings.distance.Color = npcColor
-                        drawings.distance.Outline = esp.settings.distance.outline
-                        drawings.distance.Size = esp.settings.distance.size
+                        drawings.distance.Color = ns.distance.color
+                        drawings.distance.Outline = ns.distance.outline
+                        drawings.distance.Size = ns.distance.size
                         local bounds = drawings.distance.TextBounds
                         if distance >= 150 then
                             drawings.distance.Position = Vector2.new(bottomright.X + (bounds.X / 2) + 4, ((topleft.Y + bottomright.Y) / 2) - (bounds.Y / 2))
@@ -715,8 +732,8 @@ runservice.RenderStepped:Connect(function()
 
                     drawings.weapon.Visible = false
 
-                    if esp.settings.healthbar.enabled then
-                        local barwidth = esp.settings.healthbar.width
+                    if ns.healthbar.enabled then
+                        local barwidth = ns.healthbar.width
                         local xoffset = 3
                         local healthpercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
 
@@ -732,22 +749,22 @@ runservice.RenderStepped:Connect(function()
                         drawings.healthbar_f.PointB = Vector2.new(topleft.X - xoffset - 1, bottomright.Y - filledHeight)
                         drawings.healthbar_f.PointC = Vector2.new(topleft.X - xoffset - 1, bottomright.Y + 1)
                         drawings.healthbar_f.PointD = Vector2.new(topleft.X - xoffset - barwidth + 1, bottomright.Y + 1)
-                        drawings.healthbar_f.Color = esp.settings.healthbar.lerp
+                        drawings.healthbar_f.Color = ns.healthbar.lerp
                             and Color3.new(math.clamp(1 - healthpercent, 0, 1), math.clamp(healthpercent, 0, 1), 0)
-                            or npcColor
+                            or ns.healthbar.full_color
                         drawings.healthbar_f.Visible = true
                     else
                         drawings.healthbar_b.Visible = false
                         drawings.healthbar_f.Visible = false
                     end
 
-                    if esp.settings.headcircle.enabled and onscreenstart then
+                    if ns.headcircle.enabled and onscreenstart then
                         drawings.headcircle.Position = Vector2.new(screenstart.X, screenstart.Y)
                         drawings.headcircle.Radius = boxheight * 0.15
                         drawings.headcircle.Thickness = 1.5
-                        drawings.headcircle.Color = npcColor
+                        drawings.headcircle.Color = ns.headcircle.color
                         drawings.headcircle.Visible = true
-                        if esp.settings.headcircle.outline then
+                        if ns.headcircle.outline then
                             drawings.headcircle_outline.Position = Vector2.new(screenstart.X, screenstart.Y)
                             drawings.headcircle_outline.Radius = drawings.headcircle.Radius
                             drawings.headcircle_outline.Thickness = drawings.headcircle.Thickness * 2.5
@@ -758,16 +775,16 @@ runservice.RenderStepped:Connect(function()
                         drawings.headcircle_outline.Visible = false
                     end
 
-                    if esp.settings.box.enabled then
-                        if esp.settings.box.mode == "full" then
+                    if ns.box.enabled then
+                        if ns.box.mode == "full" then
                             for _, line in pairs(drawings.corner_box) do line.Visible = false end
                             drawings.full_box.PointA = topleft
                             drawings.full_box.PointB = Vector2.new(bottomright.X, topleft.Y)
                             drawings.full_box.PointC = bottomright
                             drawings.full_box.PointD = Vector2.new(topleft.X, bottomright.Y)
-                            drawings.full_box.Color = npcColor
+                            drawings.full_box.Color = ns.box.color
                             drawings.full_box.Visible = true
-                            if esp.settings.box.outline then
+                            if ns.box.outline then
                                 drawings.box_outline.PointA = topleft
                                 drawings.box_outline.PointB = Vector2.new(bottomright.X, topleft.Y)
                                 drawings.box_outline.PointC = bottomright
@@ -776,13 +793,9 @@ runservice.RenderStepped:Connect(function()
                                 drawings.box_outline.Visible = true
                             else drawings.box_outline.Visible = false end
 
-                        elseif esp.settings.box.mode == "corner" then
+                        elseif ns.box.mode == "corner" then
                             drawings.full_box.Visible = false
                             drawings.box_outline.Visible = false
-                            local tl = Vector2.new(math.floor(minX), math.floor(minY))
-                            local tr = Vector2.new(math.floor(maxX), math.floor(minY))
-                            local bl = Vector2.new(math.floor(minX), math.floor(maxY))
-                            local br = Vector2.new(math.floor(maxX), math.floor(maxY))
                             local cb = drawings.corner_box
                             local line_size = math.min((br.X - tl.X) / 4, (br.Y - tl.Y) / 4)
 
@@ -796,11 +809,11 @@ runservice.RenderStepped:Connect(function()
                             cb[16].From = br + Vector2.new(0, 1); cb[16].To = br - Vector2.new(0, line_size)
 
                             for i = 9, 16 do
-                                cb[i].Color = npcColor
+                                cb[i].Color = ns.box.color
                                 cb[i].Visible = true
                             end
 
-                            if esp.settings.box.outline then
+                            if ns.box.outline then
                                 local ot = cb[9].Thickness * 3
                                 cb[1].From = tl - Vector2.new(1,0);  cb[1].To = tl + Vector2.new(line_size+1,0); cb[1].Thickness = ot
                                 cb[2].From = tl - Vector2.new(0,1);  cb[2].To = tl + Vector2.new(0,line_size+1); cb[2].Thickness = ot
@@ -811,7 +824,7 @@ runservice.RenderStepped:Connect(function()
                                 cb[7].From = br + Vector2.new(2,0);  cb[7].To = br - Vector2.new(line_size+1,0); cb[7].Thickness = ot
                                 cb[8].From = br + Vector2.new(0,2);  cb[8].To = br - Vector2.new(0,line_size+1); cb[8].Thickness = ot
                             end
-                            for i = 1, 8 do cb[i].Visible = esp.settings.box.outline end
+                            for i = 1, 8 do cb[i].Visible = ns.box.outline end
                         end
                     else
                         drawings.full_box.Visible = false
@@ -819,18 +832,18 @@ runservice.RenderStepped:Connect(function()
                         for _, line in pairs(drawings.corner_box) do line.Visible = false end
                     end
 
-                    if esp.settings.lookangle.enabled then
-                        local screenend, onScreenend = camera:WorldToViewportPoint(head.Position + head.CFrame.LookVector * esp.settings.lookangle.length)
+                    if ns.lookangle.enabled then
+                        local screenend, onScreenend = camera:WorldToViewportPoint(head.Position + head.CFrame.LookVector * ns.lookangle.length)
                         if onscreenstart and onScreenend then
                             drawings.lookangle.From = Vector2.new(screenstart.X, screenstart.Y)
                             drawings.lookangle.To = Vector2.new(screenend.X, screenend.Y)
-                            drawings.lookangle.Color = npcColor
-                            drawings.lookangle.Thickness = esp.settings.lookangle.thickness
+                            drawings.lookangle.Color = ns.lookangle.color
+                            drawings.lookangle.Thickness = ns.lookangle.thickness
                             drawings.lookangle.Visible = true
-                            if esp.settings.lookangle.outline then
+                            if ns.lookangle.outline then
                                 drawings.lookangle_outline.From = Vector2.new(screenstart.X, screenstart.Y)
                                 drawings.lookangle_outline.To = Vector2.new(screenend.X, screenend.Y)
-                                drawings.lookangle_outline.Thickness = esp.settings.lookangle.thickness * 2.5
+                                drawings.lookangle_outline.Thickness = ns.lookangle.thickness * 2.5
                                 drawings.lookangle_outline.Visible = true
                             else drawings.lookangle_outline.Visible = false end
                         else
@@ -885,14 +898,14 @@ for _,player in pairs(players:GetChildren()) do
     esp:initplayer(player)
 end
 
-if game == "pd" then
-    workspace.AiZones.ChildAdded:Connect(function(child)
+if Game == "pd" then
+    workspace.AiZones.DescendantAdded:Connect(function(child)
         if child:IsA("Model") and child:FindFirstChild("HumanoidRootPart") and child:FindFirstChild("Humanoid") and child:FindFirstChild("Head") then
             esp:addnpc(child)
         end
     end)
 
-    for i,v in pairs(workspace.AiZones:GetChildren()) do
+    for i,v in pairs(workspace.AiZones:GetDescendants()) do
         if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v:FindFirstChild("Head") then
             esp:addnpc(v)
         end
