@@ -320,7 +320,7 @@ end
 
 runservice.RenderStepped:Connect(function()
     for player,data in pairs(framework.players) do
-        if esp.settings.enabled and not data.client and framework.player.Character then
+        if esp.settings.enabled and not data.client and framework.player.Character and framework.player.Character:FindFirstChild("HumanoidRootPart") then
             if data.spawned and data.character:FindFirstChild("HumanoidRootPart") and data.character:FindFirstChild("Humanoid") and data.character:FindFirstChild("Head") then
                 local character = data.character
                 local root = data.root
