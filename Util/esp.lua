@@ -319,6 +319,13 @@ function esp:addnpc(npc)
             framework:draw("Line", {}),
             framework:draw("Line", {}),
         }
+
+        npc.AncestryChanged:Connect(function(_, parent)
+            if not parent or parent == nil then
+                framework:_cleanupDrawings(framework.npcs[npc].drawings)
+                framework.npcs[npc] = nil
+            end
+        end)
     end
 end
 
@@ -519,26 +526,6 @@ runservice.RenderStepped:Connect(function()
 
                             local line_size = math.min((br.X - tl.X) / 4, (br.Y - tl.Y) / 4)
 
-                            --[[drawings.corner_box.tl1.From = tl
-                            drawings.corner_box.tl1.To = tl + Vector2.new(line_size, 0)
-                            drawings.corner_box.tl2.From = tl
-                            drawings.corner_box.tl2.To = tl + Vector2.new(0, line_size)
-
-                            drawings.corner_box.tr1.From = tr
-                            drawings.corner_box.tr1.To = tr - Vector2.new(line_size, 0)
-                            drawings.corner_box.tr2.From = tr
-                            drawings.corner_box.tr2.To = tr + Vector2.new(0, line_size)
-
-                            drawings.corner_box.bl1.From = bl
-                            drawings.corner_box.bl1.To = bl + Vector2.new(line_size, 0)
-                            drawings.corner_box.bl2.From = bl
-                            drawings.corner_box.bl2.To = bl - Vector2.new(0, line_size)
-
-                            drawings.corner_box.br1.From = br + Vector2.new(1, 0)
-                            drawings.corner_box.br1.To = br - Vector2.new(line_size, 0)
-                            drawings.corner_box.br2.From = br + Vector2.new(0, 1)
-                            drawings.corner_box.br2.To = br - Vector2.new(0, line_size)]]
-
                             cb[9].From = tl;          cb[9].To = tl + Vector2.new(line_size, 0)
                             cb[10].From = tl;         cb[10].To = tl + Vector2.new(0, line_size)
                             cb[11].From = tr;         cb[11].To = tr - Vector2.new(line_size, 0)
@@ -549,34 +536,6 @@ runservice.RenderStepped:Connect(function()
                             cb[16].From = br + Vector2.new(0, 1);  cb[16].To = br - Vector2.new(0, line_size)
 
                             if esp.settings.box.outline then
-                                --[[drawings.corner_box.tl1_outline.From = tl - Vector2.new(1, 0)
-                                drawings.corner_box.tl1_outline.To = tl + Vector2.new(line_size + 1, 0)
-                                drawings.corner_box.tl1_outline.Thickness = drawings.corner_box.br2.Thickness * 3
-                                drawings.corner_box.tl2_outline.From = tl - Vector2.new(0, 1)
-                                drawings.corner_box.tl2_outline.To = tl + Vector2.new(0, line_size + 1)
-                                drawings.corner_box.tl2_outline.Thickness = drawings.corner_box.br2.Thickness * 3
-
-                                drawings.corner_box.tr1_outline.From = tr + Vector2.new(1, 0)
-                                drawings.corner_box.tr1_outline.To = tr - Vector2.new(line_size + 1, 0)
-                                drawings.corner_box.tr1_outline.Thickness = drawings.corner_box.br2.Thickness * 3
-                                drawings.corner_box.tr2_outline.From = tr - Vector2.new(0, 1)
-                                drawings.corner_box.tr2_outline.To = tr + Vector2.new(0, line_size + 1)
-                                drawings.corner_box.tr2_outline.Thickness = drawings.corner_box.br2.Thickness * 3
-
-                                drawings.corner_box.bl1_outline.From = bl - Vector2.new(1, 0)
-                                drawings.corner_box.bl1_outline.To = bl + Vector2.new(line_size + 1, 0)
-                                drawings.corner_box.bl1_outline.Thickness = drawings.corner_box.br2.Thickness * 3
-                                drawings.corner_box.bl2_outline.From = bl - Vector2.new(0, 1)
-                                drawings.corner_box.bl2_outline.To = bl - Vector2.new(0, line_size + 1)
-                                drawings.corner_box.bl2_outline.Thickness = drawings.corner_box.br2.Thickness * 3
-                                
-                                drawings.corner_box.br1_outline.From = br + Vector2.new(2, 0)
-                                drawings.corner_box.br1_outline.To = br - Vector2.new(line_size + 1, 0)
-                                drawings.corner_box.br1_outline.Thickness = drawings.corner_box.br2.Thickness * 3
-                                drawings.corner_box.br2_outline.From = br + Vector2.new(0, 2)
-                                drawings.corner_box.br2_outline.To = br - Vector2.new(0, line_size + 1)
-                                drawings.corner_box.br2_outline.Thickness = drawings.corner_box.br2.Thickness * 3]]
-
                                 local ot = cb[9].Thickness * 3
                                 cb[1].From = tl - Vector2.new(1, 0);   cb[1].To = tl + Vector2.new(line_size + 1, 0);  cb[1].Thickness = ot
                                 cb[2].From = tl - Vector2.new(0, 1);   cb[2].To = tl + Vector2.new(0, line_size + 1);  cb[2].Thickness = ot
@@ -588,14 +547,6 @@ runservice.RenderStepped:Connect(function()
                                 cb[8].From = br + Vector2.new(0, 2);   cb[8].To = br - Vector2.new(0, line_size + 1);  cb[8].Thickness = ot
                             end
 
-                            --[[for name, line in pairs(drawings.corner_box) do
-                                if not string.find(name, "_outline") then
-                                    line.Color = esp.settings.box.color
-                                    line.Visible = true
-                                else
-                                    line.Visible = esp.settings.box.outline
-                                end
-                            end]]
                             for i = 1, 8 do
                                 drawings.corner_box[i].Visible = esp.settings.box.outline
                             end
