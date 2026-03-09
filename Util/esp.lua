@@ -267,7 +267,7 @@ function esp:checkvis(entity)
     if data.drawings.name and data.drawings.name.Visible then return true end
     if data.drawings.full_box and data.drawings.full_box.Visible then return true end
     if data.drawings.healthbar_f and data.drawings.healthbar_f.Visible then return true end
-    if data.drawings.corner_box[9].Visible then return true end
+    if data.drawings.corner_box and data.drawings.corner_box[9] and data.drawings.corner_box[9].Visible then return true end
 
     return false
 end
