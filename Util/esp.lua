@@ -1,9 +1,9 @@
 local esp = { }
 
 local framework = loadstring(request({Url = "https://raw.githubusercontent.com/YellowFireFighter/Crumbleware-Rewrite/refs/heads/main/Util/framework.lua", Method = "Get"}).Body)()({debug = false})
-local font = 1
+local font = 2
 if Drawing.Fonts and Drawing.Fonts.new then 
-    --font = Drawing.Fonts.new(request({Url = "https://github.com/YellowFireFighter/Crumbleware-Rewrite/raw/refs/heads/main/Util/font.ttf", Method = "Get"}).Body)
+    --font = Drawing.Fonts.new(request({Url = "https://github.com/YellowFireFighter/Crumbleware-Rewrite/raw/refs/heads/main/Util/ProggyClean.ttf", Method = "Get"}).Body)
 end
 
 local workspace = framework.services.workspace
@@ -213,7 +213,7 @@ end
 runservice.RenderStepped:Connect(function()
     for player,data in pairs(framework.players) do
         if esp.settings.enabled and not data.client then
-            if data.spawned and data.character:FindFirstChild("HumanoidRootPart") and data.character:FindFirstChild("Humanoid") then
+            if data.spawned and data.character:FindFirstChild("HumanoidRootPart") and data.character:FindFirstChild("Humanoid") and data.character:FindFirstChild("Head") then
                 local character = data.character
                 local root = data.root
                 local head = character.Head
