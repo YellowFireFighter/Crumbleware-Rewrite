@@ -137,7 +137,7 @@ function esp:calcbounds(character, isR15)
     local onscreen = false
 
     local headScreen, headOnScreen = camera:WorldToViewportPoint(head.Position)
-    if headOnScreen and s.Z > 0 then
+    if headOnScreen and headScreen.Z > 0 then
         onscreen = true
         local headTop = camera:WorldToViewportPoint(head.Position + Vector3.new(0, head.Size.Y / 2, 0))
         minY = headTop.Y
