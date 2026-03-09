@@ -136,21 +136,23 @@ end
 
 function framework:removeplayer(player)
     if self.players[player] then
-        if self.connections[player.Name .. "a"] then
-            self.connections[player.Name .. "a"]:Disconnect()
-            self.connections[player.Name .. "a"] = nil
-        end
+        pcall(function()
+            if self.connections[player.Name .. "a"] then
+                self.connections[player.Name .. "a"]:Disconnect()
+                self.connections[player.Name .. "a"] = nil
+            end
 
-        if self.connections[player.Name .. "r"] then
-            self.connections[player.Name .. "r"]:Disconnect()
-            self.connections[player.Name .. "r"] = nil
-        end
+            if self.connections[player.Name .. "r"] then
+                self.connections[player.Name .. "r"]:Disconnect()
+                self.connections[player.Name .. "r"] = nil
+            end
 
-        self:_cleanupDrawings(self.players[player].drawings)
+            self:_cleanupDrawings(self.players[player].drawings)
 
-        self.players[player] = nil
+            self.players[player] = nil
 
-        self:info("remove player " .. player.Name)
+            self:info("remove player " .. player.Name)
+        end)
     else
         self:info("remove player failed " .. player.Name)
     end
