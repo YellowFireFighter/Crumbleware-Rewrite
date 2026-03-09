@@ -200,7 +200,6 @@ end
 function esp:setvis(entity, vis)
     local data = esp:getdata(entity)
     if not data or not data.drawings then return end
-    if data.drawings.name.Visible == vis then return end
 
     for _, drawing in pairs(data.drawings) do
         if typeof(drawing) ~= "table" then
@@ -650,8 +649,6 @@ runservice.RenderStepped:Connect(function()
                     if not data.faded then
                         data.faded = true
                         esp:setvis(player, false)
-                    else
-                        esp:setvis(player, false)
                     end
                 end
             else
@@ -873,8 +870,6 @@ runservice.RenderStepped:Connect(function()
                 else
                     if not data.faded then
                         data.faded = true
-                        esp:setvis(npc, false)
-                    else
                         esp:setvis(npc, false)
                     end
                 end
