@@ -2,8 +2,8 @@ local esp = { }
 
 local framework = loadstring(request({Url = "https://raw.githubusercontent.com/YellowFireFighter/Crumbleware-Rewrite/refs/heads/main/Util/framework.lua", Method = "Get"}).Body)()({debug = false})
 local font = 2
-if Drawing.Fonts and Drawing.Fonts.new then 
-    --font = Drawing.Fonts.new(request({Url = "https://github.com/YellowFireFighter/Crumbleware-Rewrite/raw/refs/heads/main/Util/ProggyClean.ttf", Method = "Get"}).Body)
+if DrawFont and DrawFont.Register then 
+    font = DrawFont.Register(request({Url = "https://github.com/YellowFireFighter/Crumbleware-Rewrite/raw/refs/heads/main/Util/ProggyClean.ttf", Method = "Get"}).Body)
 end
 
 local workspace = framework.services.workspace
@@ -16,9 +16,6 @@ local inputservice = framework.services.inputservice
 esp.settings = {
     enabled = false,
     maxdis = 0,
-    includeai = false,
-    ai_override = false,
-    ai_color_override = Color3.fromRGB(255,0,0),
     fade = {
         fadetime = 1,
         fadein = false,
@@ -26,14 +23,12 @@ esp.settings = {
     },
     box = {enabled = false, outline = false, mode = "full", color = Color3.fromRGB(255,255,255)},
     healthbar = {enabled = false, lerp = false, width = 3, full_color = Color3.fromRGB(0,255,0), empty_color = Color3.fromRGB(255,0,0)},
-    name = {enabled = false, size = 12, outline = false, color = Color3.fromRGB(255,255,255)},
-    distance = {enabled = false, size = 12, outline = false, color = Color3.fromRGB(255,255,255)},
-    weapon = {enabled = false, size = 12, outline = false, color = Color3.fromRGB(255,0,0)},
+    name = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+    distance = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+    weapon = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,0,0)},
     lookangle = {enabled = false, length = 4, thickness = 1.5, outline = false, color = Color3.fromRGB(255,255,255)},
-    headcircle = {enabled = false, radius = 14, outline = false, color = Color3.fromRGB(255,255,255)}
+    headcircle = {enabled = false, radius = 14, outline = false, color = Color3.fromRGB(255,255,255)},
 }
-
-esp.health_lerp = { }
 
 local games = {
     [2862098693] = "pd",
@@ -44,6 +39,29 @@ local games = {
 }
 
 local Game = games[game.GameId] or "uni"
+
+if game == "pd" then
+    esp.settings.pd_settings = {
+        includeai = false,
+        ai_override = false,
+        ai_color_override = Color3.fromRGB(255,0,0),
+
+        droppeditems = false,
+        droppeditems_name = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+        droppeditems_distance = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+        droppeditems_price = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+
+        corpse = false,
+        corpse_min = 50000,
+        corpse_name = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+        corpse_distance = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+        corpse_value = {enabled = false, size = 13, outline = false, color = Color3.fromRGB(255,255,255)},
+    }
+end
+
+esp.health_lerp = { }
+framework.npcs = { }
+framework.items = { }
 
 function esp:initplayer(player)
     if player and player ~= framework.player then
@@ -62,34 +80,7 @@ function esp:initplayer(player)
         framework.players[player].drawings.headcircle_outline = framework:draw("Circle", {Color = Color3.fromRGB(0,0,0)})
         framework.players[player].drawings.headcircle = framework:draw("Circle", {})
 
-        --[[framework.players[player].drawings.corner_box = { }
-
-        framework.players[player].drawings.corner_box.tl1_outline = framework:draw("Line", {Color = Color3.fromRGB(0,0,0)})
-        framework.players[player].drawings.corner_box.tl2_outline = framework:draw("Line", {Color = Color3.fromRGB(0,0,0)})
-
-        framework.players[player].drawings.corner_box.tr1_outline = framework:draw("Line", {Color = Color3.fromRGB(0,0,0)})
-        framework.players[player].drawings.corner_box.tr2_outline = framework:draw("Line", {Color = Color3.fromRGB(0,0,0)})
-
-        framework.players[player].drawings.corner_box.bl1_outline = framework:draw("Line", {Color = Color3.fromRGB(0,0,0)})
-        framework.players[player].drawings.corner_box.bl2_outline = framework:draw("Line", {Color = Color3.fromRGB(0,0,0)})
-
-        framework.players[player].drawings.corner_box.br1_outline = framework:draw("Line", {Color = Color3.fromRGB(0,0,0)})
-        framework.players[player].drawings.corner_box.br2_outline = framework:draw("Line", {Color = Color3.fromRGB(0,0,0)})
-
-        framework.players[player].drawings.corner_box.tl1 = framework:draw("Line", {})
-        framework.players[player].drawings.corner_box.tl2 = framework:draw("Line", {})
-
-        framework.players[player].drawings.corner_box.tr1 = framework:draw("Line", {})
-        framework.players[player].drawings.corner_box.tr2 = framework:draw("Line", {})
-
-        framework.players[player].drawings.corner_box.bl1 = framework:draw("Line", {})
-        framework.players[player].drawings.corner_box.bl2 = framework:draw("Line", {})
-
-        framework.players[player].drawings.corner_box.br1 = framework:draw("Line", {})
-        framework.players[player].drawings.corner_box.br2 = framework:draw("Line", {})]]
-
         framework.players[player].drawings.corner_box = {
-            -- outlines
             framework:draw("Line", {Color = Color3.fromRGB(0,0,0)}),
             framework:draw("Line", {Color = Color3.fromRGB(0,0,0)}),
             framework:draw("Line", {Color = Color3.fromRGB(0,0,0)}),
@@ -98,7 +89,6 @@ function esp:initplayer(player)
             framework:draw("Line", {Color = Color3.fromRGB(0,0,0)}),
             framework:draw("Line", {Color = Color3.fromRGB(0,0,0)}),
             framework:draw("Line", {Color = Color3.fromRGB(0,0,0)}),
-            -- lines
             framework:draw("Line", {}),
             framework:draw("Line", {}),
             framework:draw("Line", {}),
@@ -124,70 +114,127 @@ function esp:initplayer(player)
     end
 end
 
-function esp:fadeplayer(player, transparency)
-    if player and framework.players[player].drawings then
-        local cache = { }
-        for _,drawing in pairs(framework.players[player].drawings) do
-            if typeof(drawing) ~= "table" then
-                cache[#cache + 1] = {drawing = drawing, start = 1 - transparency}
+function esp:calcbounds(character, isR15)
+    local head = character:FindFirstChild("Head")
+    local camera = framework.services.camera
+    local padding = Vector3.new(0.5, 0, 1)
+
+    local minX, minY = math.huge, math.huge
+    local maxX, maxY = -math.huge, -math.huge
+    local onscreen = false
+
+    local headScreen, headOnScreen = camera:WorldToViewportPoint(head.Position)
+    if headOnScreen then
+        onscreen = true
+        local headTop = camera:WorldToViewportPoint(head.Position + Vector3.new(0, head.Size.Y / 2, 0))
+        minY = headTop.Y
+        minX = math.min(minX, headScreen.X)
+        maxX = math.max(maxX, headScreen.X)
+    end
+
+    local arms = isR15
+        and {"Right Arm", "Left Arm", "RightLowerArm", "LeftLowerArm"}
+        or  {"Right Arm", "Left Arm"}
+
+    local legs = isR15
+        and {"RightFoot", "LeftFoot"}
+        or  {"Right Leg", "Left Leg"}
+
+    for _, name in pairs(arms) do
+        local part = character:FindFirstChild(name)
+        if part then
+            local s, on = camera:WorldToViewportPoint(part.Position)
+            if on then
+                onscreen = true
+                local sideX = camera:WorldToViewportPoint(part.Position + Vector3.new(padding.X, 0, 0))
+                local sideZ = camera:WorldToViewportPoint(part.Position + Vector3.new(0, 0, padding.Z))
+                local screenPad = math.max(math.abs(sideX.X - s.X), math.abs(sideZ.X - s.X))
+                minX = math.min(minX, s.X - screenPad)
+                maxX = math.max(maxX, s.X + screenPad)
             end
         end
+    end
 
-        if framework.players[player].drawings.corner_box then
-            for _,drawing in pairs(framework.players[player].drawings.corner_box) do
-                cache[#cache + 1] = {drawing = drawing, start = 1 - transparency}
+    for _, name in pairs(legs) do
+        local part = character:FindFirstChild(name)
+        if part then
+            local s, on = camera:WorldToViewportPoint(part.Position)
+            if on then
+                onscreen = true
+                local bot = camera:WorldToViewportPoint(part.Position - Vector3.new(0, part.Size.Y / 2, 0))
+                maxY = math.max(maxY, bot.Y)
             end
         end
+    end
 
-        local start = os.clock()
-        task.spawn(function()
-            for _,data in pairs(cache) do
-                local drawing = data.drawing
-                drawing.Transparency = 1 - transparency
-            end
+    local topleft     = Vector2.new(math.floor(minX), math.floor(minY))
+    local bottomright = Vector2.new(math.floor(maxX), math.floor(maxY))
+    local centerX     = math.floor(topleft.X + bottomright.X) / 2
+    local boxheight   = math.floor(bottomright.Y - topleft.Y)
 
-            while task.wait() do
-                local t = (os.clock() - start) / self.settings.fade.fadetime
-                t = math.clamp(t, 0, 1)
-                
-                for _,data in pairs(cache) do
-                    local drawing = data.drawing
-                    drawing.Transparency = data.start + (transparency - data.start) * t
-                end
+    return onscreen, topleft, bottomright, centerX, boxheight
+end
 
-                if t >= self.settings.fade.fadetime then
-                    cache = nil
-                    esp:setvis(player, transparency == 1)
-                    break
-                end
-            end
-        end)
-    else
-        framework:info("invalid player " .. player)
+function esp:getdata(entity)
+    if framework.players[entity] then
+        return framework.players[entity]
+    elseif framework.npcs[entity] then
+        return framework.npcs[entity]
+    end
+    return nil
+end
+
+function esp:setvis(entity, vis)
+    local data = esp:getdata(entity)
+    if not data then return end
+
+    for _, drawing in pairs(data.drawings) do
+        if typeof(drawing) ~= "table" then
+            drawing.Visible = vis
+        end
+    end
+    for _, line in pairs(data.drawings.corner_box) do
+        line.Visible = vis
     end
 end
 
-function esp:setvis(player, vis)
-    if player and framework.players[player] then
-        local cache = { }
-        for _,drawing in pairs(framework.players[player].drawings) do
-            if typeof(drawing) ~= "table" then
-                cache[#cache + 1] = drawing
-            end
-        end
-
-        if framework.players[player].drawings.corner_box then
-            for _,drawing in pairs(framework.players[player].drawings.corner_box) do
-                cache[#cache + 1] = drawing
-            end
-        end
-
-        for i,v in pairs(cache) do
-            v.Visible = vis
-        end
-
-        cache = nil
+function esp:fadeplayer(entity, transparency)
+    local data = esp:getdata(entity)
+    if not data or not data.drawings then
+        framework:info("invalid entity " .. tostring(entity))
+        return
     end
+
+    local cache = {}
+    for _, drawing in pairs(data.drawings) do
+        if typeof(drawing) ~= "table" then
+            cache[#cache + 1] = {drawing = drawing, start = 1 - transparency}
+        end
+    end
+    for _, drawing in pairs(data.drawings.corner_box) do
+        cache[#cache + 1] = {drawing = drawing, start = 1 - transparency}
+    end
+
+    local start = os.clock()
+    task.spawn(function()
+        for _, d in pairs(cache) do
+            d.drawing.Transparency = 1 - transparency
+        end
+
+        while task.wait() do
+            local t = math.clamp((os.clock() - start) / self.settings.fade.fadetime, 0, 1)
+
+            for _, d in pairs(cache) do
+                d.drawing.Transparency = d.start + (transparency - d.start) * t
+            end
+
+            if t >= 1 then
+                cache = nil
+                esp:setvis(entity, transparency == 1)
+                break
+            end
+        end
+    end)
 end
 
 function esp:gettool(player)
@@ -210,9 +257,51 @@ function esp:gettool(player)
     return false
 end
 
+function esp:addnpc(npc)
+    if npc:FindFirstChild("Humanoid") and npc:FindFirstChild("HumanoidRootPart") then
+        framework.npcs[npc] = {drawings = { }}
+        framework.npcs[npc].faded = true
+
+        framework.npcs[npc].drawings.name = framework:draw("Text", {Color = Color3.fromRGB(255, 255, 255), Outline = false, Center = true, Size = 14, Font = font})
+        framework.npcs[npc].drawings.distance = framework:draw("Text", {Color = Color3.fromRGB(255, 255, 255), Outline = false, Center = true, Size = 14, Font = font})
+        framework.npcs[npc].drawings.weapon = framework:draw("Text", {Color = Color3.fromRGB(255, 255, 255), Outline = false, Center = true, Size = 14, Font = font})
+        framework.npcs[npc].drawings.box_outline = framework:draw("Quad", {PointA = Vector2.new(0,0,0), PointB = Vector2.new(0,0,0), PointC = Vector2.new(0,0,0), PointD = Vector2.new(0,0,0), Thickness = 2, Filled = false, Color = Color3.fromRGB(0,0,0)})
+        framework.npcs[npc].drawings.full_box = framework:draw("Quad", {PointA = Vector2.new(0,0,0), PointB = Vector2.new(0,0,0), PointC = Vector2.new(0,0,0), PointD = Vector2.new(0,0,0), Thickness = 1.5, Filled = false})
+        framework.npcs[npc].drawings.healthbar_b = framework:draw("Quad", {Filled = true})
+        framework.npcs[npc].drawings.healthbar_f = framework:draw("Quad", {Filled = true})
+        framework.npcs[npc].drawings.lookangle_outline = framework:draw("Line", {Color = Color3.fromRGB(0,0,0)})
+        framework.npcs[npc].drawings.lookangle = framework:draw("Line", {})
+        framework.npcs[npc].drawings.headcircle_outline = framework:draw("Circle", {Color = Color3.fromRGB(0,0,0)})
+        framework.npcs[npc].drawings.headcircle = framework:draw("Circle", {})
+
+        framework.npcs[npc].drawings.corner_box = {
+            framework:draw("Line", {Color = Color3.fromRGB(0,0,0)}),
+            framework:draw("Line", {Color = Color3.fromRGB(0,0,0)}),
+            framework:draw("Line", {Color = Color3.fromRGB(0,0,0)}),
+            framework:draw("Line", {Color = Color3.fromRGB(0,0,0)}),
+            framework:draw("Line", {Color = Color3.fromRGB(0,0,0)}),
+            framework:draw("Line", {Color = Color3.fromRGB(0,0,0)}),
+            framework:draw("Line", {Color = Color3.fromRGB(0,0,0)}),
+            framework:draw("Line", {Color = Color3.fromRGB(0,0,0)}),
+            framework:draw("Line", {}),
+            framework:draw("Line", {}),
+            framework:draw("Line", {}),
+            framework:draw("Line", {}),
+            framework:draw("Line", {}),
+            framework:draw("Line", {}),
+            framework:draw("Line", {}),
+            framework:draw("Line", {}),
+        }
+    end
+end
+
+function esp:additem(item) -- workspace.DroppedItems -- workspace.Containers
+
+end
+
 runservice.RenderStepped:Connect(function()
     for player,data in pairs(framework.players) do
-        if esp.settings.enabled and not data.client then
+        if esp.settings.enabled and not data.client and framework.player.Character then
             if data.spawned and data.character:FindFirstChild("HumanoidRootPart") and data.character:FindFirstChild("Humanoid") and data.character:FindFirstChild("Head") then
                 local character = data.character
                 local root = data.root
@@ -244,99 +333,13 @@ runservice.RenderStepped:Connect(function()
                     end
                 end
 
-                -- old scaling good but rlly expensive
-                --[[local minX, minY = math.huge, math.huge
-                local maxX, maxY = -math.huge, -math.huge
-                local onscreen = false
+                local onscreen, topleft, bottomright, centerX, boxheight = esp:calcbounds(character, data.isR15)
+                local screenstart, onscreenstart = camera:WorldToViewportPoint(head.Position)
 
-                local padding = Vector3.new(0.5, 0, 1)
-
-                for _, part in pairs(character:GetChildren()) do
-                    if part.Name == "Head" or part.Name == "RightFoot" or part.Name == "LeftFoot" or part.Name == "Right Leg" or part.Name == "Left Leg" then
-                        local corners = {
-                            part.Position + Vector3.new(padding.X, 0, padding.Z),
-                            part.Position + Vector3.new(-padding.X, 0, padding.Z),
-                            part.Position + Vector3.new(padding.X, 0, -padding.Z),
-                            part.Position + Vector3.new(-padding.X, 0, -padding.Z),
-                            part.Position + Vector3.new(padding.X, part.Size.Y, padding.Z),
-                            part.Position + Vector3.new(-padding.X, part.Size.Y, padding.Z),
-                            part.Position + Vector3.new(padding.X, part.Size.Y, -padding.Z),
-                            part.Position + Vector3.new(-padding.X, part.Size.Y, -padding.Z),
-                        }
-
-                        for _, corner in pairs(corners) do
-                            local screenPos, onScreen = camera:WorldToViewportPoint(corner)
-                            if onScreen then
-                                onscreen = true
-                                minX = math.min(minX, screenPos.X)
-                                minY = math.min(minY, screenPos.Y)
-                                maxX = math.max(maxX, screenPos.X)
-                                maxY = math.max(maxY, screenPos.Y)
-                            end
-                        end
-                    end
-                end]]
-
-                -- new scaling kinda mid
-                local minX, minY = math.huge, math.huge
-                local maxX, maxY = -math.huge, -math.huge
-                local padding = Vector3.new(0.5, 0, 1)
-                local onscreen = false
-
-                local arms;
-                local legs;
-                if data.isR15 then
-                    arms = {"Right Arm", "Left Arm", "RightLowerArm", "LeftLowerArm"}
-                    legs = {"RightFoot", "LeftFoot"}
-                else
-                    arms = {"Right Arm", "Left Arm"}
-                    legs = {"Right Leg", "Left Leg"}
-                end
-
-                local headScreen, headOnScreen = camera:WorldToViewportPoint(head.Position)
-                if headOnScreen then
-                    onscreen = true
-                    local headTop = camera:WorldToViewportPoint(head.Position + Vector3.new(0, head.Size.Y / 2, 0))
-                    minY = headTop.Y
-                    minX = math.min(minX, headScreen.X)
-                    maxX = math.max(maxX, headScreen.X)
-                end
-                for _, name in pairs(arms) do
-                    local part = character:FindFirstChild(name)
-                    if part then
-                        local s, on = camera:WorldToViewportPoint(part.Position)
-                        if on then
-                            onscreen = true
-                            local sideX = camera:WorldToViewportPoint(part.Position + Vector3.new(padding.X, 0, 0))
-                            local sideZ = camera:WorldToViewportPoint(part.Position + Vector3.new(0, 0, padding.Z))
-                            local screenPad = math.max(
-                                math.abs(sideX.X - s.X),
-                                math.abs(sideZ.X - s.X)
-                            )
-                            minX = math.min(minX, s.X - screenPad)
-                            maxX = math.max(maxX, s.X + screenPad)
-                        end
-                    end
-                end
-                for _, name in pairs(legs) do
-                    local part = character:FindFirstChild(name)
-                    if part then
-                        local s, on = camera:WorldToViewportPoint(part.Position)
-                        if on then
-                            onscreen = true
-                            local bot = camera:WorldToViewportPoint(part.Position - Vector3.new(0, part.Size.Y / 2, 0))
-                            maxY = math.max(maxY, bot.Y)
-                        end
-                    end
-                end
-                -- end new scaling
-
-                local topleft = Vector2.new(math.floor(minX), math.floor(minY))
-                local bottomright = Vector2.new(math.floor(maxX), math.floor(maxY))
-                local centerX = math.floor(topleft.X + bottomright.X) / 2
-                local boxheight = math.floor(bottomright.Y - topleft.Y)
-
-                local screenstart, onscreenstart = camera:WorldToViewportPoint(headpos)
+                local tl = topleft
+                local tr = Vector2.new(bottomright.X, topleft.Y)
+                local bl = Vector2.new(topleft.X, bottomright.Y)
+                local br = bottomright
 
                 if onscreen then
                     if esp.settings.name.enabled then
@@ -641,6 +644,227 @@ runservice.RenderStepped:Connect(function()
             esp:setvis(player, false)
         end
     end
+
+    for npc, data in pairs(framework.npcs) do
+        if esp.settings.enabled and framework.player.Character then
+            local pd = esp.settings.pd_settings
+            local npcColor = (pd and pd.ai_override) and pd.ai_color_override or esp.settings.box.color
+
+            if npc and npc.Parent and npc:FindFirstChild("HumanoidRootPart") and npc:FindFirstChild("Humanoid") and npc:FindFirstChild("Head") then
+                local head = npc.Head
+                local root = npc.HumanoidRootPart
+                local humanoid = npc.Humanoid
+                local drawings = data.drawings
+
+                local distance = (root.Position - framework.player.Character.HumanoidRootPart.Position).Magnitude
+                if Game == "pd" then distance = distance / 3 end
+
+                if esp.settings.maxdis ~= 0 and distance > esp.settings.maxdis then
+                    esp:setvis(npc, false)
+                    continue
+                end
+
+                if humanoid.Health > 0 and esp.settings.fade.fadein and data.faded then
+                    data.faded = false
+                    esp:fadeplayer(npc, 1)
+                elseif humanoid.Health <= 0 and not data.faded then
+                    data.faded = true
+                    task.spawn(function()
+                        wait(5)
+                        framework:_cleanupDrawings(npc.drawings)
+                        framework.npcs[npc] = nil
+                    end)
+                    if esp.settings.fade.fadeout then
+                        esp:fadeplayer(npc, 0)
+                    else
+                        esp:setvis(npc, false)
+                    end
+                end
+
+                local onscreen, topleft, bottomright, centerX, boxheight = esp:calcbounds(npc, true)
+                local screenstart, onscreenstart = camera:WorldToViewportPoint(head.Position)
+
+                local tl = topleft
+                local tr = Vector2.new(bottomright.X, topleft.Y)
+                local bl = Vector2.new(topleft.X, bottomright.Y)
+                local br = bottomright
+
+                if onscreen then
+                    if esp.settings.name.enabled then
+                        drawings.name.Position = Vector2.new(centerX, topleft.Y - drawings.name.TextBounds.Y - 4)
+                        drawings.name.Text = npc.Name
+                        drawings.name.Color = npcColor
+                        drawings.name.Outline = esp.settings.name.outline
+                        drawings.name.Size = esp.settings.name.size
+                        drawings.name.Visible = true
+                    else drawings.name.Visible = false end
+
+                    if esp.settings.distance.enabled then
+                        drawings.distance.Text = tostring(math.round(distance)) .. "m"
+                        drawings.distance.Color = npcColor
+                        drawings.distance.Outline = esp.settings.distance.outline
+                        drawings.distance.Size = esp.settings.distance.size
+                        local bounds = drawings.distance.TextBounds
+                        if distance >= 150 then
+                            drawings.distance.Position = Vector2.new(bottomright.X + (bounds.X / 2) + 4, ((topleft.Y + bottomright.Y) / 2) - (bounds.Y / 2))
+                        else
+                            drawings.distance.Position = Vector2.new(bottomright.X + (bounds.X / 2) + 6, topleft.Y)
+                        end
+                        drawings.distance.Visible = true
+                    else drawings.distance.Visible = false end
+
+                    drawings.weapon.Visible = false
+
+                    if esp.settings.healthbar.enabled then
+                        local barwidth = esp.settings.healthbar.width
+                        local xoffset = 3
+                        local healthpercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+
+                        drawings.healthbar_b.PointA = Vector2.new(topleft.X - xoffset - barwidth, topleft.Y - 1)
+                        drawings.healthbar_b.PointB = Vector2.new(topleft.X - xoffset, topleft.Y - 1)
+                        drawings.healthbar_b.PointC = Vector2.new(topleft.X - xoffset, bottomright.Y + 2)
+                        drawings.healthbar_b.PointD = Vector2.new(topleft.X - xoffset - barwidth, bottomright.Y + 2)
+                        drawings.healthbar_b.Color = Color3.fromRGB(0, 0, 0)
+                        drawings.healthbar_b.Visible = true
+
+                        local filledHeight = boxheight * healthpercent
+                        drawings.healthbar_f.PointA = Vector2.new(topleft.X - xoffset - barwidth + 1, bottomright.Y - filledHeight)
+                        drawings.healthbar_f.PointB = Vector2.new(topleft.X - xoffset - 1, bottomright.Y - filledHeight)
+                        drawings.healthbar_f.PointC = Vector2.new(topleft.X - xoffset - 1, bottomright.Y + 1)
+                        drawings.healthbar_f.PointD = Vector2.new(topleft.X - xoffset - barwidth + 1, bottomright.Y + 1)
+                        drawings.healthbar_f.Color = esp.settings.healthbar.lerp
+                            and Color3.new(math.clamp(1 - healthpercent, 0, 1), math.clamp(healthpercent, 0, 1), 0)
+                            or npcColor
+                        drawings.healthbar_f.Visible = true
+                    else
+                        drawings.healthbar_b.Visible = false
+                        drawings.healthbar_f.Visible = false
+                    end
+
+                    if esp.settings.headcircle.enabled and onscreenstart then
+                        drawings.headcircle.Position = Vector2.new(screenstart.X, screenstart.Y)
+                        drawings.headcircle.Radius = boxheight * 0.15
+                        drawings.headcircle.Thickness = 1.5
+                        drawings.headcircle.Color = npcColor
+                        drawings.headcircle.Visible = true
+                        if esp.settings.headcircle.outline then
+                            drawings.headcircle_outline.Position = Vector2.new(screenstart.X, screenstart.Y)
+                            drawings.headcircle_outline.Radius = drawings.headcircle.Radius
+                            drawings.headcircle_outline.Thickness = drawings.headcircle.Thickness * 2.5
+                            drawings.headcircle_outline.Visible = true
+                        else drawings.headcircle_outline.Visible = false end
+                    else
+                        drawings.headcircle.Visible = false
+                        drawings.headcircle_outline.Visible = false
+                    end
+
+                    if esp.settings.box.enabled then
+                        if esp.settings.box.mode == "full" then
+                            for _, line in pairs(drawings.corner_box) do line.Visible = false end
+                            drawings.full_box.PointA = topleft
+                            drawings.full_box.PointB = Vector2.new(bottomright.X, topleft.Y)
+                            drawings.full_box.PointC = bottomright
+                            drawings.full_box.PointD = Vector2.new(topleft.X, bottomright.Y)
+                            drawings.full_box.Color = npcColor
+                            drawings.full_box.Visible = true
+                            if esp.settings.box.outline then
+                                drawings.box_outline.PointA = topleft
+                                drawings.box_outline.PointB = Vector2.new(bottomright.X, topleft.Y)
+                                drawings.box_outline.PointC = bottomright
+                                drawings.box_outline.PointD = Vector2.new(topleft.X, bottomright.Y)
+                                drawings.box_outline.Thickness = drawings.full_box.Thickness * 2.5
+                                drawings.box_outline.Visible = true
+                            else drawings.box_outline.Visible = false end
+
+                        elseif esp.settings.box.mode == "corner" then
+                            drawings.full_box.Visible = false
+                            drawings.box_outline.Visible = false
+                            local tl = Vector2.new(math.floor(minX), math.floor(minY))
+                            local tr = Vector2.new(math.floor(maxX), math.floor(minY))
+                            local bl = Vector2.new(math.floor(minX), math.floor(maxY))
+                            local br = Vector2.new(math.floor(maxX), math.floor(maxY))
+                            local cb = drawings.corner_box
+                            local line_size = math.min((br.X - tl.X) / 4, (br.Y - tl.Y) / 4)
+
+                            cb[9].From  = tl;                      cb[9].To  = tl + Vector2.new(line_size, 0)
+                            cb[10].From = tl;                      cb[10].To = tl + Vector2.new(0, line_size)
+                            cb[11].From = tr;                      cb[11].To = tr - Vector2.new(line_size, 0)
+                            cb[12].From = tr;                      cb[12].To = tr + Vector2.new(0, line_size)
+                            cb[13].From = bl;                      cb[13].To = bl + Vector2.new(line_size, 0)
+                            cb[14].From = bl;                      cb[14].To = bl - Vector2.new(0, line_size)
+                            cb[15].From = br + Vector2.new(1, 0); cb[15].To = br - Vector2.new(line_size, 0)
+                            cb[16].From = br + Vector2.new(0, 1); cb[16].To = br - Vector2.new(0, line_size)
+
+                            for i = 9, 16 do
+                                cb[i].Color = npcColor
+                                cb[i].Visible = true
+                            end
+
+                            if esp.settings.box.outline then
+                                local ot = cb[9].Thickness * 3
+                                cb[1].From = tl - Vector2.new(1,0);  cb[1].To = tl + Vector2.new(line_size+1,0); cb[1].Thickness = ot
+                                cb[2].From = tl - Vector2.new(0,1);  cb[2].To = tl + Vector2.new(0,line_size+1); cb[2].Thickness = ot
+                                cb[3].From = tr + Vector2.new(1,0);  cb[3].To = tr - Vector2.new(line_size+1,0); cb[3].Thickness = ot
+                                cb[4].From = tr - Vector2.new(0,1);  cb[4].To = tr + Vector2.new(0,line_size+1); cb[4].Thickness = ot
+                                cb[5].From = bl - Vector2.new(1,0);  cb[5].To = bl + Vector2.new(line_size+1,0); cb[5].Thickness = ot
+                                cb[6].From = bl - Vector2.new(0,1);  cb[6].To = bl - Vector2.new(0,line_size+1); cb[6].Thickness = ot
+                                cb[7].From = br + Vector2.new(2,0);  cb[7].To = br - Vector2.new(line_size+1,0); cb[7].Thickness = ot
+                                cb[8].From = br + Vector2.new(0,2);  cb[8].To = br - Vector2.new(0,line_size+1); cb[8].Thickness = ot
+                            end
+                            for i = 1, 8 do cb[i].Visible = esp.settings.box.outline end
+                        end
+                    else
+                        drawings.full_box.Visible = false
+                        drawings.box_outline.Visible = false
+                        for _, line in pairs(drawings.corner_box) do line.Visible = false end
+                    end
+
+                    if esp.settings.lookangle.enabled then
+                        local screenend, onScreenend = camera:WorldToViewportPoint(head.Position + head.CFrame.LookVector * esp.settings.lookangle.length)
+                        if onscreenstart and onScreenend then
+                            drawings.lookangle.From = Vector2.new(screenstart.X, screenstart.Y)
+                            drawings.lookangle.To = Vector2.new(screenend.X, screenend.Y)
+                            drawings.lookangle.Color = npcColor
+                            drawings.lookangle.Thickness = esp.settings.lookangle.thickness
+                            drawings.lookangle.Visible = true
+                            if esp.settings.lookangle.outline then
+                                drawings.lookangle_outline.From = Vector2.new(screenstart.X, screenstart.Y)
+                                drawings.lookangle_outline.To = Vector2.new(screenend.X, screenend.Y)
+                                drawings.lookangle_outline.Thickness = esp.settings.lookangle.thickness * 2.5
+                                drawings.lookangle_outline.Visible = true
+                            else drawings.lookangle_outline.Visible = false end
+                        else
+                            drawings.lookangle.Visible = false
+                            drawings.lookangle_outline.Visible = false
+                        end
+                    else
+                        drawings.lookangle.Visible = false
+                        drawings.lookangle_outline.Visible = false
+                    end
+                else
+                    if not data.faded then
+                        data.faded = true
+                        if esp.settings.fade.fadeout then
+                            esp:fadeplayer(npc, 0)
+                        else
+                            esp:setvis(npc, false)
+                        end
+                    end
+                end
+            else
+                if not data.faded then
+                    data.faded = true
+                    if esp.settings.fade.fadeout then
+                        esp:fadeplayer(npc, 0)
+                    else
+                        esp:setvis(npc, false)
+                    end
+                end
+            end
+        else
+            esp:setvis(npc, false)
+        end
+    end
 end)
 
 table.insert(framework.connec_funcs["playeradded"], function(player)
@@ -659,6 +883,20 @@ end)
 
 for _,player in pairs(players:GetChildren()) do
     esp:initplayer(player)
+end
+
+if game == "pd" then
+    workspace.AiZones.ChildAdded:Connect(function(child)
+        if child:IsA("Model") and child:FindFirstChild("HumanoidRootPart") and child:FindFirstChild("Humanoid") and child:FindFirstChild("Head") then
+            esp:addnpc(child)
+        end
+    end)
+
+    for i,v in pairs(workspace.AiZones:GetChildren()) do
+        if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v:FindFirstChild("Head") then
+            esp:addnpc(v)
+        end
+    end
 end
 
 return esp, framework
