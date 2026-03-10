@@ -2,7 +2,7 @@ local esp = { }
 
 local framework = loadstring(request({Url = "https://raw.githubusercontent.com/YellowFireFighter/Crumbleware-Rewrite/refs/heads/main/Util/framework.lua", Method = "Get"}).Body)()({debug = false})
 local font = 2
-if DrawFont ~= nil and DrawFont.Register ~= nil then
+if DrawFont ~= nil and DrawFont.Register ~= nil then 
     pcall(function()
         font = DrawFont.Register(request({Url = "https://github.com/YellowFireFighter/Crumbleware-Rewrite/raw/refs/heads/main/Util/ProggyClean.ttf", Method = "Get"}).Body)
     end)
@@ -219,12 +219,17 @@ end
 
 function esp:fadeplayer(entity, transparency)
     local data = esp:getdata(entity)
-    if not data or not data.drawings then
-        framework:info("invalid entity " .. tostring(entity))
-        return
+    if not data or not data.drawings then return end
+
+    local fadingIn = transparency == 0
+
+    if not fadingIn then
+        if data._hiding then return end
+        data._hiding = true
+    else
+        data._hiding = false
     end
 
-    -- cancel any active fade
     local token = {}
     data._fadetoken = token
 
@@ -232,21 +237,22 @@ function esp:fadeplayer(entity, transparency)
     for _, drawing in pairs(data.drawings) do
         if typeof(drawing) ~= "table" then
             cache[#cache + 1] = {drawing = drawing, start = drawing.Transparency}
+            if fadingIn then drawing.Visible = true end
         end
     end
     if data.drawings.corner_box then
         for _, drawing in pairs(data.drawings.corner_box) do
             cache[#cache + 1] = {drawing = drawing, start = drawing.Transparency}
+            if fadingIn then drawing.Visible = true end
         end
     end
 
     local start = os.clock()
     task.spawn(function()
         while task.wait() do
-            if data._fadetoken ~= token then break end -- cancelled
+            if data._fadetoken ~= token then break end
 
             local t = math.clamp((os.clock() - start) / self.settings.fade.fadetime, 0, 1)
-
             for _, d in pairs(cache) do
                 d.drawing.Transparency = d.start + (transparency - d.start) * t
             end
@@ -254,7 +260,7 @@ function esp:fadeplayer(entity, transparency)
             if t >= 1 then
                 cache = nil
                 if data._fadetoken == token then
-                    esp:setvis(entity, transparency == 1)
+                    esp:setvis(entity, fadingIn)
                 end
                 break
             end
@@ -388,6 +394,7 @@ runservice.RenderStepped:Connect(function()
                 local br = bottomright
 
                 if onscreen then
+                    data._hiding = false
                     if esp.settings.name.enabled then
                         drawings.name.Position = Vector2.new(centerX, topleft.Y - drawings.name.TextBounds.Y - 4)
                         drawings.name.Text = player.Name
@@ -613,9 +620,14 @@ runservice.RenderStepped:Connect(function()
                         drawings.lookangle_outline.Visible = false
                     end
                 else
-                    if esp:checkvis(player) then
+                    if not data._hiding then
+                        data._hiding = true
                         data.faded = true
-                        esp:setvis(player, false)
+                        if esp.settings.fade.fadeout then
+                            esp:fadeplayer(player, 1)
+                        else
+                            esp:setvis(player, false)
+                        end
                     end
                 end
             else
@@ -687,6 +699,7 @@ runservice.RenderStepped:Connect(function()
                 local br = bottomright
 
                 if onscreen then
+                    data._hiding = false
                     if ns.name.enabled then
                         drawings.name.Position = Vector2.new(centerX, topleft.Y - drawings.name.TextBounds.Y - 4)
                         drawings.name.Text = npc.Name
@@ -835,9 +848,14 @@ runservice.RenderStepped:Connect(function()
                         drawings.lookangle_outline.Visible = false
                     end
                 else
-                    if esp:checkvis(npc) then
+                    if not data._hiding then
+                        data._hiding = true
                         data.faded = true
-                        esp:setvis(npc, false)
+                        if esp.settings.fade.fadeout then
+                            esp:fadeplayer(npc, 1)
+                        else
+                            esp:setvis(npc, false)
+                        end
                     end
                 end
             else
