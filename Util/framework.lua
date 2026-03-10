@@ -94,17 +94,17 @@ function framework:addplayer(player)
             faded = false
         }
 
-        self.connections[player.Name .. "a"] = player.CharacterAdded:Connect(function()
+        self.connections[player.Name .. "a"] = player.CharacterAdded:Connect(function(character)
+            repeat task.wait() until character:FindFirstChild("HumanoidRootPart")
             self:updateplayer(player)
 
-            repeat task.wait() until not player.Character or player.Character and not player.Character:FindFirstChild("Head")
-
+            repeat task.wait() until not character:FindFirstChild("HumanoidRootPart")
             self:updateplayer(player)
         end)
 
         self.connections[player.Name .. "r"] = player.CharacterRemoving:Connect(function()
             task.spawn(function()
-                task.wait(1)
+                repeat task.wait() until framework.character == nil or framework.character == false or not framework.character:FindFirstChild("HumanoidRootPart")
                 self:updateplayer(player)
             end)
         end)
