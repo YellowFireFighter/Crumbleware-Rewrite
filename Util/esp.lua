@@ -2,8 +2,10 @@ local esp = { }
 
 local framework = loadstring(request({Url = "https://raw.githubusercontent.com/YellowFireFighter/Crumbleware-Rewrite/refs/heads/main/Util/framework.lua", Method = "Get"}).Body)()({debug = false})
 local font = 2
-if DrawFont ~= nil and DrawFont.Register ~= nil then 
-    font = DrawFont.Register(request({Url = "https://github.com/YellowFireFighter/Crumbleware-Rewrite/raw/refs/heads/main/Util/ProggyClean.ttf", Method = "Get"}).Body)
+if DrawFont ~= nil and DrawFont.Register ~= nil then
+    pcall(function()
+        font = DrawFont.Register(request({Url = "https://github.com/YellowFireFighter/Crumbleware-Rewrite/raw/refs/heads/main/Util/ProggyClean.ttf", Method = "Get"}).Body)
+    end)
 end
 
 local workspace = framework.services.workspace
