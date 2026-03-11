@@ -77,6 +77,7 @@ end
 esp.health_lerp = { }
 framework.npcs = { }
 framework.items = { }
+framework.corpses = { }
 
 function esp:initplayer(player)
     if player and player ~= framework.player then
@@ -345,8 +346,44 @@ function esp:addnpc(npc)
     end
 end
 
-function esp:additem(item) -- workspace.DroppedItems -- workspace.Containers
+function esp:additem(item)
+    if item:GetAttribute("Collectable") and item:FindFirstChild("Part") then
+        framework.items[item] = { root = item.Part }
 
+        framework.items[item].drawings = {
+            name = framework:draw("Text", {Color = Color3.fromRGB(255,255,255), Outline = false, Center = true, Size = 13, Font = font}),
+            distance = framework:draw("Text", {Color = Color3.fromRGB(255,255,255), Outline = false, Center = true, Size = 13, Font = font}),
+        }
+
+        item.AncestryChanged:Connect(function(_, parent)
+            if not parent then
+                if framework.items[item] then
+                    framework:_cleanupDrawings(framework.items[item].drawings)
+                    framework.items[item] = nil
+                end
+            end
+        end)
+    end
+end
+
+function esp:addcorpse(corpse)
+    if corpse:GetAttribute("DisplayName") and corpse:FindFirstChild("HumanoidRootPart") then
+        framework.corpses[corpse] = { root = corpse.HumanoidRootPart }
+
+        framework.corpses[corpse].drawings = {
+            name = framework:draw("Text", {Color = Color3.fromRGB(255,255,255), Outline = false, Center = true, Size = 13, Font = font}),
+            distance = framework:draw("Text", {Color = Color3.fromRGB(255,255,255), Outline = false, Center = true, Size = 13, Font = font}),
+        }
+
+        corpse.AncestryChanged:Connect(function(_, parent)
+            if not parent then
+                if framework.corpses[corpse] then
+                    framework:_cleanupDrawings(framework.corpses[corpse].drawings)
+                    framework.corpses[corpse] = nil
+                end
+            end
+        end)
+    end
 end
 
 runservice.RenderStepped:Connect(function()
@@ -645,226 +682,323 @@ runservice.RenderStepped:Connect(function()
         end
     end
 
-    for npc, data in pairs(framework.npcs) do
-        local ns;
-        if Game == "pd" then
-            ns = esp.settings.pd_settings.npc
-        else
-            ns = esp.settings.npc
+    if Game == "pd" then
+        local is = esp.settings.pd_settings.item
+        local cs = esp.settings.pd_settings.corpse
+
+        for npc, data in pairs(framework.npcs) do
+                local ns;
+                if Game == "pd" then
+                    ns = esp.settings.pd_settings.npc
+                else
+                    ns = esp.settings.npc
+                end
+
+                if ns.enabled and framework.player.Character and framework.player.Character:FindFirstChild("HumanoidRootPart") then
+                    if ns and not ns.enabled then
+                        esp:setvis(npc, false)
+                        continue
+                    end
+
+                    if npc and npc.Parent and npc:FindFirstChild("HumanoidRootPart") and npc:FindFirstChild("Humanoid") and npc:FindFirstChild("Head") then
+                        local head = npc.Head
+                        local root = npc.HumanoidRootPart
+                        local humanoid = npc.Humanoid
+                        local drawings = data.drawings
+
+                        local distance = (root.Position - framework.player.Character.HumanoidRootPart.Position).Magnitude
+                        if Game == "pd" then distance = distance / 3 end
+
+                        if ns.maxdis ~= 0 and distance > ns.maxdis then
+                            esp:setvis(npc, false)
+                            continue
+                        end
+
+                        if humanoid.Health > 0 and esp.settings.fade.fadein and data.faded then
+                            data.faded = false
+                            esp:fadeplayer(npc, 1)
+                        elseif humanoid.Health > 0 and not esp.settings.fade.fadein and data.faded then
+                            data.faded = false
+                        elseif humanoid.Health <= 0 and not data.faded then
+                            data.faded = true
+                            if esp.settings.fade.fadeout then
+                                esp:fadeplayer(npc, 0)
+                            else
+                                esp:setvis(npc, false)
+                            end
+                        end
+
+                        local onscreen, topleft, bottomright, centerX, boxheight = esp:calcbounds(npc, true)
+                        local screenstart, onscreenstart = camera:WorldToViewportPoint(head.Position)
+
+                        local tl = topleft
+                        local tr = Vector2.new(bottomright.X, topleft.Y)
+                        local bl = Vector2.new(topleft.X, bottomright.Y)
+                        local br = bottomright
+
+                        if onscreen then
+                            data._hiding = false
+                            if ns.name.enabled then
+                                drawings.name.Position = Vector2.new(centerX, topleft.Y - drawings.name.TextBounds.Y - 4)
+                                drawings.name.Text = npc.Name
+                                drawings.name.Color = ns.name.color
+                                drawings.name.Outline = ns.name.outline
+                                drawings.name.Size = ns.name.size
+                                drawings.name.Visible = true
+                            else drawings.name.Visible = false end
+
+                            if ns.distance.enabled then
+                                drawings.distance.Text = tostring(math.round(distance)) .. "m"
+                                drawings.distance.Color = ns.distance.color
+                                drawings.distance.Outline = ns.distance.outline
+                                drawings.distance.Size = ns.distance.size
+                                local bounds = drawings.distance.TextBounds
+                                if distance >= 150 then
+                                    drawings.distance.Position = Vector2.new(bottomright.X + (bounds.X / 2) + 4, ((topleft.Y + bottomright.Y) / 2) - (bounds.Y / 2))
+                                else
+                                    drawings.distance.Position = Vector2.new(bottomright.X + (bounds.X / 2) + 6, topleft.Y)
+                                end
+                                drawings.distance.Visible = true
+                            else drawings.distance.Visible = false end
+
+                            drawings.weapon.Visible = false
+
+                            if ns.healthbar.enabled then
+                                local barwidth = ns.healthbar.width
+                                local xoffset = 3
+                                local healthpercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+
+                                drawings.healthbar_b.PointA = Vector2.new(topleft.X - xoffset - barwidth, topleft.Y - 1)
+                                drawings.healthbar_b.PointB = Vector2.new(topleft.X - xoffset, topleft.Y - 1)
+                                drawings.healthbar_b.PointC = Vector2.new(topleft.X - xoffset, bottomright.Y + 2)
+                                drawings.healthbar_b.PointD = Vector2.new(topleft.X - xoffset - barwidth, bottomright.Y + 2)
+                                drawings.healthbar_b.Color = Color3.fromRGB(0, 0, 0)
+                                drawings.healthbar_b.Visible = true
+
+                                local filledHeight = boxheight * healthpercent
+                                drawings.healthbar_f.PointA = Vector2.new(topleft.X - xoffset - barwidth + 1, bottomright.Y - filledHeight)
+                                drawings.healthbar_f.PointB = Vector2.new(topleft.X - xoffset - 1, bottomright.Y - filledHeight)
+                                drawings.healthbar_f.PointC = Vector2.new(topleft.X - xoffset - 1, bottomright.Y + 1)
+                                drawings.healthbar_f.PointD = Vector2.new(topleft.X - xoffset - barwidth + 1, bottomright.Y + 1)
+                                drawings.healthbar_f.Color = ns.healthbar.lerp
+                                    and Color3.new(math.clamp(1 - healthpercent, 0, 1), math.clamp(healthpercent, 0, 1), 0)
+                                    or ns.healthbar.full_color
+                                drawings.healthbar_f.Visible = true
+                            else
+                                drawings.healthbar_b.Visible = false
+                                drawings.healthbar_f.Visible = false
+                            end
+
+                            if ns.headcircle.enabled and onscreenstart then
+                                drawings.headcircle.Position = Vector2.new(screenstart.X, screenstart.Y)
+                                drawings.headcircle.Radius = boxheight * 0.15
+                                drawings.headcircle.Thickness = 1.5
+                                drawings.headcircle.Color = ns.headcircle.color
+                                drawings.headcircle.Visible = true
+                                if ns.headcircle.outline then
+                                    drawings.headcircle_outline.Position = Vector2.new(screenstart.X, screenstart.Y)
+                                    drawings.headcircle_outline.Radius = drawings.headcircle.Radius
+                                    drawings.headcircle_outline.Thickness = drawings.headcircle.Thickness * 2.5
+                                    drawings.headcircle_outline.Visible = true
+                                else drawings.headcircle_outline.Visible = false end
+                            else
+                                drawings.headcircle.Visible = false
+                                drawings.headcircle_outline.Visible = false
+                            end
+
+                            if ns.box.enabled then
+                                if ns.box.mode == "full" then
+                                    for _, line in pairs(drawings.corner_box) do line.Visible = false end
+                                    drawings.full_box.PointA = topleft
+                                    drawings.full_box.PointB = Vector2.new(bottomright.X, topleft.Y)
+                                    drawings.full_box.PointC = bottomright
+                                    drawings.full_box.PointD = Vector2.new(topleft.X, bottomright.Y)
+                                    drawings.full_box.Color = ns.box.color
+                                    drawings.full_box.Visible = true
+                                    if ns.box.outline then
+                                        drawings.box_outline.PointA = topleft
+                                        drawings.box_outline.PointB = Vector2.new(bottomright.X, topleft.Y)
+                                        drawings.box_outline.PointC = bottomright
+                                        drawings.box_outline.PointD = Vector2.new(topleft.X, bottomright.Y)
+                                        drawings.box_outline.Thickness = drawings.full_box.Thickness * 2.5
+                                        drawings.box_outline.Visible = true
+                                    else drawings.box_outline.Visible = false end
+
+                                elseif ns.box.mode == "corner" then
+                                    drawings.full_box.Visible = false
+                                    drawings.box_outline.Visible = false
+                                    local cb = drawings.corner_box
+                                    local line_size = math.min((br.X - tl.X) / 4, (br.Y - tl.Y) / 4)
+
+                                    cb[9].From  = tl;                      cb[9].To  = tl + Vector2.new(line_size, 0)
+                                    cb[10].From = tl;                      cb[10].To = tl + Vector2.new(0, line_size)
+                                    cb[11].From = tr;                      cb[11].To = tr - Vector2.new(line_size, 0)
+                                    cb[12].From = tr;                      cb[12].To = tr + Vector2.new(0, line_size)
+                                    cb[13].From = bl;                      cb[13].To = bl + Vector2.new(line_size, 0)
+                                    cb[14].From = bl;                      cb[14].To = bl - Vector2.new(0, line_size)
+                                    cb[15].From = br + Vector2.new(1, 0); cb[15].To = br - Vector2.new(line_size, 0)
+                                    cb[16].From = br + Vector2.new(0, 1); cb[16].To = br - Vector2.new(0, line_size)
+
+                                    for i = 9, 16 do
+                                        cb[i].Color = ns.box.color
+                                        cb[i].Visible = true
+                                    end
+
+                                    if ns.box.outline then
+                                        local ot = cb[9].Thickness * 3
+                                        cb[1].From = tl - Vector2.new(1,0);  cb[1].To = tl + Vector2.new(line_size+1,0); cb[1].Thickness = ot
+                                        cb[2].From = tl - Vector2.new(0,1);  cb[2].To = tl + Vector2.new(0,line_size+1); cb[2].Thickness = ot
+                                        cb[3].From = tr + Vector2.new(1,0);  cb[3].To = tr - Vector2.new(line_size+1,0); cb[3].Thickness = ot
+                                        cb[4].From = tr - Vector2.new(0,1);  cb[4].To = tr + Vector2.new(0,line_size+1); cb[4].Thickness = ot
+                                        cb[5].From = bl - Vector2.new(1,0);  cb[5].To = bl + Vector2.new(line_size+1,0); cb[5].Thickness = ot
+                                        cb[6].From = bl - Vector2.new(0,1);  cb[6].To = bl - Vector2.new(0,line_size+1); cb[6].Thickness = ot
+                                        cb[7].From = br + Vector2.new(2,0);  cb[7].To = br - Vector2.new(line_size+1,0); cb[7].Thickness = ot
+                                        cb[8].From = br + Vector2.new(0,2);  cb[8].To = br - Vector2.new(0,line_size+1); cb[8].Thickness = ot
+                                    end
+                                    for i = 1, 8 do cb[i].Visible = ns.box.outline end
+                                end
+                            else
+                                drawings.full_box.Visible = false
+                                drawings.box_outline.Visible = false
+                                for _, line in pairs(drawings.corner_box) do line.Visible = false end
+                            end
+
+                            if ns.lookangle.enabled then
+                                local screenend, onScreenend = camera:WorldToViewportPoint(head.Position + head.CFrame.LookVector * ns.lookangle.length)
+                                if onscreenstart and onScreenend then
+                                    drawings.lookangle.From = Vector2.new(screenstart.X, screenstart.Y)
+                                    drawings.lookangle.To = Vector2.new(screenend.X, screenend.Y)
+                                    drawings.lookangle.Color = ns.lookangle.color
+                                    drawings.lookangle.Thickness = ns.lookangle.thickness
+                                    drawings.lookangle.Visible = true
+                                    if ns.lookangle.outline then
+                                        drawings.lookangle_outline.From = Vector2.new(screenstart.X, screenstart.Y)
+                                        drawings.lookangle_outline.To = Vector2.new(screenend.X, screenend.Y)
+                                        drawings.lookangle_outline.Thickness = ns.lookangle.thickness * 2.5
+                                        drawings.lookangle_outline.Visible = true
+                                    else drawings.lookangle_outline.Visible = false end
+                                else
+                                    drawings.lookangle.Visible = false
+                                    drawings.lookangle_outline.Visible = false
+                                end
+                            else
+                                drawings.lookangle.Visible = false
+                                drawings.lookangle_outline.Visible = false
+                            end
+                        else
+                            if not data._hiding then
+                                data._hiding = true
+                                data.faded = true
+                                esp:setvis(npc, false)
+                            end
+                        end
+                    else
+                        if not data._hiding then
+                            data._hiding = true
+                            data.faded = true
+                            if esp.settings.fade.fadeout then
+                                esp:fadeplayer(player, 1)
+                            else
+                                esp:setvis(player, false)
+                            end
+                        end
+                    end
+                else
+                    if esp:checkvis(npc) then
+                        esp:setvis(npc, false)
+                    end
+                end
         end
 
-        if ns.enabled and framework.player.Character then
-            if ns and not ns.enabled then
-                esp:setvis(npc, false)
-                continue
-            end
-
-            if npc and npc.Parent and npc:FindFirstChild("HumanoidRootPart") and npc:FindFirstChild("Humanoid") and npc:FindFirstChild("Head") then
-                local head = npc.Head
-                local root = npc.HumanoidRootPart
-                local humanoid = npc.Humanoid
-                local drawings = data.drawings
-
-                local distance = (root.Position - framework.player.Character.HumanoidRootPart.Position).Magnitude
-                if Game == "pd" then distance = distance / 3 end
-
-                if ns.maxdis ~= 0 and distance > ns.maxdis then
-                    esp:setvis(npc, false)
+        for item, data in pairs(framework.items) do
+            if is.enabled and framework.player.Character and framework.player.Character:FindFirstChild("HumanoidRootPart") then
+                local root = data.root
+                if not root or not root.Parent then
+                    data.drawings.name.Visible = false
+                    data.drawings.distance.Visible = false
                     continue
                 end
 
-                if humanoid.Health > 0 and esp.settings.fade.fadein and data.faded then
-                    data.faded = false
-                    esp:fadeplayer(npc, 1)
-                elseif humanoid.Health > 0 and not esp.settings.fade.fadein and data.faded then
-                    data.faded = false
-                elseif humanoid.Health <= 0 and not data.faded then
-                    data.faded = true
-                    if esp.settings.fade.fadeout then
-                        esp:fadeplayer(npc, 0)
-                    else
-                        esp:setvis(npc, false)
-                    end
+                local distance = (root.Position - framework.player.Character.HumanoidRootPart.Position).Magnitude / 3
+                if is.maxdis ~= 0 and distance > is.maxdis then
+                    data.drawings.name.Visible = false
+                    data.drawings.distance.Visible = false
+                    continue
                 end
 
-                local onscreen, topleft, bottomright, centerX, boxheight = esp:calcbounds(npc, true)
-                local screenstart, onscreenstart = camera:WorldToViewportPoint(head.Position)
-
-                local tl = topleft
-                local tr = Vector2.new(bottomright.X, topleft.Y)
-                local bl = Vector2.new(topleft.X, bottomright.Y)
-                local br = bottomright
-
+                local screen, onscreen = camera:WorldToViewportPoint(root.Position)
                 if onscreen then
-                    data._hiding = false
-                    if ns.name.enabled then
-                        drawings.name.Position = Vector2.new(centerX, topleft.Y - drawings.name.TextBounds.Y - 4)
-                        drawings.name.Text = npc.Name
-                        drawings.name.Color = ns.name.color
-                        drawings.name.Outline = ns.name.outline
-                        drawings.name.Size = ns.name.size
-                        drawings.name.Visible = true
-                    else drawings.name.Visible = false end
+                    local sp = Vector2.new(screen.X, screen.Y)
+                    if is.name.enabled then
+                        data.drawings.name.Text = item.Name
+                        data.drawings.name.Color = is.name.color
+                        data.drawings.name.Size = is.name.size
+                        data.drawings.name.Outline = is.name.outline
+                        data.drawings.name.Position = sp - Vector2.new(0, 20)
+                        data.drawings.name.Visible = true
+                    else data.drawings.name.Visible = false end
 
-                    if ns.distance.enabled then
-                        drawings.distance.Text = tostring(math.round(distance)) .. "m"
-                        drawings.distance.Color = ns.distance.color
-                        drawings.distance.Outline = ns.distance.outline
-                        drawings.distance.Size = ns.distance.size
-                        local bounds = drawings.distance.TextBounds
-                        if distance >= 150 then
-                            drawings.distance.Position = Vector2.new(bottomright.X + (bounds.X / 2) + 4, ((topleft.Y + bottomright.Y) / 2) - (bounds.Y / 2))
-                        else
-                            drawings.distance.Position = Vector2.new(bottomright.X + (bounds.X / 2) + 6, topleft.Y)
-                        end
-                        drawings.distance.Visible = true
-                    else drawings.distance.Visible = false end
-
-                    drawings.weapon.Visible = false
-
-                    if ns.healthbar.enabled then
-                        local barwidth = ns.healthbar.width
-                        local xoffset = 3
-                        local healthpercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
-
-                        drawings.healthbar_b.PointA = Vector2.new(topleft.X - xoffset - barwidth, topleft.Y - 1)
-                        drawings.healthbar_b.PointB = Vector2.new(topleft.X - xoffset, topleft.Y - 1)
-                        drawings.healthbar_b.PointC = Vector2.new(topleft.X - xoffset, bottomright.Y + 2)
-                        drawings.healthbar_b.PointD = Vector2.new(topleft.X - xoffset - barwidth, bottomright.Y + 2)
-                        drawings.healthbar_b.Color = Color3.fromRGB(0, 0, 0)
-                        drawings.healthbar_b.Visible = true
-
-                        local filledHeight = boxheight * healthpercent
-                        drawings.healthbar_f.PointA = Vector2.new(topleft.X - xoffset - barwidth + 1, bottomright.Y - filledHeight)
-                        drawings.healthbar_f.PointB = Vector2.new(topleft.X - xoffset - 1, bottomright.Y - filledHeight)
-                        drawings.healthbar_f.PointC = Vector2.new(topleft.X - xoffset - 1, bottomright.Y + 1)
-                        drawings.healthbar_f.PointD = Vector2.new(topleft.X - xoffset - barwidth + 1, bottomright.Y + 1)
-                        drawings.healthbar_f.Color = ns.healthbar.lerp
-                            and Color3.new(math.clamp(1 - healthpercent, 0, 1), math.clamp(healthpercent, 0, 1), 0)
-                            or ns.healthbar.full_color
-                        drawings.healthbar_f.Visible = true
-                    else
-                        drawings.healthbar_b.Visible = false
-                        drawings.healthbar_f.Visible = false
-                    end
-
-                    if ns.headcircle.enabled and onscreenstart then
-                        drawings.headcircle.Position = Vector2.new(screenstart.X, screenstart.Y)
-                        drawings.headcircle.Radius = boxheight * 0.15
-                        drawings.headcircle.Thickness = 1.5
-                        drawings.headcircle.Color = ns.headcircle.color
-                        drawings.headcircle.Visible = true
-                        if ns.headcircle.outline then
-                            drawings.headcircle_outline.Position = Vector2.new(screenstart.X, screenstart.Y)
-                            drawings.headcircle_outline.Radius = drawings.headcircle.Radius
-                            drawings.headcircle_outline.Thickness = drawings.headcircle.Thickness * 2.5
-                            drawings.headcircle_outline.Visible = true
-                        else drawings.headcircle_outline.Visible = false end
-                    else
-                        drawings.headcircle.Visible = false
-                        drawings.headcircle_outline.Visible = false
-                    end
-
-                    if ns.box.enabled then
-                        if ns.box.mode == "full" then
-                            for _, line in pairs(drawings.corner_box) do line.Visible = false end
-                            drawings.full_box.PointA = topleft
-                            drawings.full_box.PointB = Vector2.new(bottomright.X, topleft.Y)
-                            drawings.full_box.PointC = bottomright
-                            drawings.full_box.PointD = Vector2.new(topleft.X, bottomright.Y)
-                            drawings.full_box.Color = ns.box.color
-                            drawings.full_box.Visible = true
-                            if ns.box.outline then
-                                drawings.box_outline.PointA = topleft
-                                drawings.box_outline.PointB = Vector2.new(bottomright.X, topleft.Y)
-                                drawings.box_outline.PointC = bottomright
-                                drawings.box_outline.PointD = Vector2.new(topleft.X, bottomright.Y)
-                                drawings.box_outline.Thickness = drawings.full_box.Thickness * 2.5
-                                drawings.box_outline.Visible = true
-                            else drawings.box_outline.Visible = false end
-
-                        elseif ns.box.mode == "corner" then
-                            drawings.full_box.Visible = false
-                            drawings.box_outline.Visible = false
-                            local cb = drawings.corner_box
-                            local line_size = math.min((br.X - tl.X) / 4, (br.Y - tl.Y) / 4)
-
-                            cb[9].From  = tl;                      cb[9].To  = tl + Vector2.new(line_size, 0)
-                            cb[10].From = tl;                      cb[10].To = tl + Vector2.new(0, line_size)
-                            cb[11].From = tr;                      cb[11].To = tr - Vector2.new(line_size, 0)
-                            cb[12].From = tr;                      cb[12].To = tr + Vector2.new(0, line_size)
-                            cb[13].From = bl;                      cb[13].To = bl + Vector2.new(line_size, 0)
-                            cb[14].From = bl;                      cb[14].To = bl - Vector2.new(0, line_size)
-                            cb[15].From = br + Vector2.new(1, 0); cb[15].To = br - Vector2.new(line_size, 0)
-                            cb[16].From = br + Vector2.new(0, 1); cb[16].To = br - Vector2.new(0, line_size)
-
-                            for i = 9, 16 do
-                                cb[i].Color = ns.box.color
-                                cb[i].Visible = true
-                            end
-
-                            if ns.box.outline then
-                                local ot = cb[9].Thickness * 3
-                                cb[1].From = tl - Vector2.new(1,0);  cb[1].To = tl + Vector2.new(line_size+1,0); cb[1].Thickness = ot
-                                cb[2].From = tl - Vector2.new(0,1);  cb[2].To = tl + Vector2.new(0,line_size+1); cb[2].Thickness = ot
-                                cb[3].From = tr + Vector2.new(1,0);  cb[3].To = tr - Vector2.new(line_size+1,0); cb[3].Thickness = ot
-                                cb[4].From = tr - Vector2.new(0,1);  cb[4].To = tr + Vector2.new(0,line_size+1); cb[4].Thickness = ot
-                                cb[5].From = bl - Vector2.new(1,0);  cb[5].To = bl + Vector2.new(line_size+1,0); cb[5].Thickness = ot
-                                cb[6].From = bl - Vector2.new(0,1);  cb[6].To = bl - Vector2.new(0,line_size+1); cb[6].Thickness = ot
-                                cb[7].From = br + Vector2.new(2,0);  cb[7].To = br - Vector2.new(line_size+1,0); cb[7].Thickness = ot
-                                cb[8].From = br + Vector2.new(0,2);  cb[8].To = br - Vector2.new(0,line_size+1); cb[8].Thickness = ot
-                            end
-                            for i = 1, 8 do cb[i].Visible = ns.box.outline end
-                        end
-                    else
-                        drawings.full_box.Visible = false
-                        drawings.box_outline.Visible = false
-                        for _, line in pairs(drawings.corner_box) do line.Visible = false end
-                    end
-
-                    if ns.lookangle.enabled then
-                        local screenend, onScreenend = camera:WorldToViewportPoint(head.Position + head.CFrame.LookVector * ns.lookangle.length)
-                        if onscreenstart and onScreenend then
-                            drawings.lookangle.From = Vector2.new(screenstart.X, screenstart.Y)
-                            drawings.lookangle.To = Vector2.new(screenend.X, screenend.Y)
-                            drawings.lookangle.Color = ns.lookangle.color
-                            drawings.lookangle.Thickness = ns.lookangle.thickness
-                            drawings.lookangle.Visible = true
-                            if ns.lookangle.outline then
-                                drawings.lookangle_outline.From = Vector2.new(screenstart.X, screenstart.Y)
-                                drawings.lookangle_outline.To = Vector2.new(screenend.X, screenend.Y)
-                                drawings.lookangle_outline.Thickness = ns.lookangle.thickness * 2.5
-                                drawings.lookangle_outline.Visible = true
-                            else drawings.lookangle_outline.Visible = false end
-                        else
-                            drawings.lookangle.Visible = false
-                            drawings.lookangle_outline.Visible = false
-                        end
-                    else
-                        drawings.lookangle.Visible = false
-                        drawings.lookangle_outline.Visible = false
-                    end
+                    if is.distance.enabled then
+                        data.drawings.distance.Text = tostring(math.round(distance)) .. "m"
+                        data.drawings.distance.Color = is.distance.color
+                        data.drawings.distance.Size = is.distance.size
+                        data.drawings.distance.Outline = is.distance.outline
+                        data.drawings.distance.Position = sp - Vector2.new(0, 8)
+                        data.drawings.distance.Visible = true
+                    else data.drawings.distance.Visible = false end
                 else
-                    if not data._hiding then
-                        data._hiding = true
-                        data.faded = true
-                        esp:setvis(npc, false)
-                    end
+                    data.drawings.name.Visible = false
+                    data.drawings.distance.Visible = false
                 end
             else
-                if not data._hiding then
-                    data._hiding = true
-                    data.faded = true
-                    if esp.settings.fade.fadeout then
-                        esp:fadeplayer(player, 1)
-                    else
-                        esp:setvis(player, false)
-                    end
-                end
+                data.drawings.name.Visible = false
+                data.drawings.distance.Visible = false
             end
-        else
-            if esp:checkvis(npc) then
-                esp:setvis(npc, false)
+        end
+
+        for corpse, data in pairs(framework.corpses) do
+            if cs.enabled and framework.player.Character and framework.player.Character:FindFirstChild("HumanoidRootPart") then
+                local root = data.root
+                if not root or not root.Parent then
+                    data.drawings.name.Visible = false
+                    data.drawings.distance.Visible = false
+                    continue
+                end
+
+                local distance = (root.Position - framework.player.Character.HumanoidRootPart.Position).Magnitude / 3
+                if cs.maxdis ~= 0 and distance > cs.maxdis then
+                    data.drawings.name.Visible = false
+                    data.drawings.distance.Visible = false
+                    continue
+                end
+
+                local screen, onscreen = camera:WorldToViewportPoint(root.Position)
+                if onscreen then
+                    local sp = Vector2.new(screen.X, screen.Y)
+                    if cs.corpse_name.enabled then
+                        data.drawings.name.Text = corpse.Name
+                        data.drawings.name.Color = cs.corpse_name.color
+                        data.drawings.name.Size = cs.corpse_name.size
+                        data.drawings.name.Outline = cs.corpse_name.outline
+                        data.drawings.name.Position = sp - Vector2.new(0, 20)
+                        data.drawings.name.Visible = true
+                    else data.drawings.name.Visible = false end
+
+                    if cs.corpse_distance.enabled then
+                        data.drawings.distance.Text = tostring(math.round(distance)) .. "m"
+                        data.drawings.distance.Color = cs.corpse_distance.color
+                        data.drawings.distance.Size = cs.corpse_distance.size
+                        data.drawings.distance.Outline = cs.corpse_distance.outline
+                        data.drawings.distance.Position = sp - Vector2.new(0, 8)
+                        data.drawings.distance.Visible = true
+                    else data.drawings.distance.Visible = false end
+                else
+                    data.drawings.name.Visible = false
+                    data.drawings.distance.Visible = false
+                end
+            else
+                data.drawings.name.Visible = false
+                data.drawings.distance.Visible = false
             end
         end
     end
@@ -894,11 +1028,26 @@ if Game == "pd" then
             esp:addnpc(child)
         end
     end)
-
-    for i,v in pairs(workspace.AiZones:GetDescendants()) do
+    for _,v in pairs(workspace.AiZones:GetDescendants()) do
         if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v:FindFirstChild("Head") then
             esp:addnpc(v)
         end
+    end
+
+    -- items
+    workspace.DroppedItems.DescendantAdded:Connect(function(child)
+        if child:IsA("Model") then esp:additem(child) end
+    end)
+    for _,v in pairs(workspace.DroppedItems:GetDescendants()) do
+        if v:IsA("Model") then esp:additem(v) end
+    end
+
+    -- corpses
+    workspace.DroppedItems.ChildAdded:Connect(function(child)
+        if child:IsA("Model") and child:GetAttribute("DisplayName") then esp:addcorpse(child) end
+    end)
+    for _,v in pairs(workspace.DroppedItems:GetChildren()) do
+        if v:IsA("Model") and v:GetAttribute("DisplayName") then esp:addcorpse(v) end
     end
 end
 
