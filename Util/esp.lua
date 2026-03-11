@@ -1062,7 +1062,6 @@ runservice.Heartbeat:Connect(function()
             end
         end
     end
-    end
 end)
 
 table.insert(framework.connec_funcs["playeradded"], function(player)
