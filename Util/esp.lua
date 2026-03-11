@@ -386,9 +386,25 @@ function esp:addcorpse(corpse)
     end
 end
 
+local spawned = false
+local cached_root = nil
+local cached_humanoid = nil
+local cached_head = nil
 runservice.RenderStepped:Connect(function()
+    if framework.player and framework.player.Character and framework.player.Character:FindFirstChild("HumanoidRootPart") and framework.player.Character:FindFirstChild("Humanoid") and framework.player.Character:FindFirstChild("Head") then
+        spawned = true
+        cached_root = framework.player.Character.HumanoidRootPart
+        cached_humanoid = framework.player.Character.Humanoid
+        cached_head = framework.player.Character.Head
+    else
+        spawned = false
+        cached_root = nil
+        cached_humanoid = nil
+        cached_head = nil
+    end
+
     for player,data in pairs(framework.players) do
-        if esp.settings.enabled and not data.client and framework.player.Character and framework.player.Character:FindFirstChild("HumanoidRootPart") then
+        if esp.settings.enabled and not data.client and spawned then
             if data.spawned and data.character:FindFirstChild("HumanoidRootPart") and data.character:FindFirstChild("Humanoid") and data.character:FindFirstChild("Head") then
                 local character = data.character
                 local root = data.root
@@ -397,8 +413,8 @@ runservice.RenderStepped:Connect(function()
                 local humanoid = character.Humanoid
                 local drawings = data.drawings
 
-                local distance = framework.player.Character and framework.player.Character.HumanoidRootPart
-                    and (root.Position - framework.player.Character.HumanoidRootPart.Position).Magnitude 
+                local distance = framework.player.Character and cached_root
+                    and (root.Position - cached_root.Position).Magnitude 
                     or 0
 
                 if Game == "pd" then
@@ -409,15 +425,19 @@ runservice.RenderStepped:Connect(function()
 
                 if humanoid.Health > 0 and esp.settings.fade.fadein and data.faded then
                     data.faded = false
+                    data._hiding = false
                     esp:fadeplayer(player, 1)
                 elseif humanoid.Health > 0 and not esp.settings.fade.fadein and data.faded then
                     data.faded = false
+                    data._hiding = false
                 elseif humanoid.Health <= 0 and not data.faded then
                     if esp.settings.fade.fadeout then
                         data.faded = true
+                        data._hiding = true
                         esp:fadeplayer(player, 0)
                     else
                         esp:setvis(player, false)
+                        data._hiding = true
                         data.faded = true
                     end
                 end
@@ -677,6 +697,7 @@ runservice.RenderStepped:Connect(function()
         else
             if esp:checkvis(player) then
                 data.faded = true
+                data._hiding = true
                 esp:setvis(player, false)
             end
         end
@@ -694,7 +715,7 @@ runservice.RenderStepped:Connect(function()
                     ns = esp.settings.npc
                 end
 
-                if ns.enabled and framework.player.Character and framework.player.Character:FindFirstChild("HumanoidRootPart") then
+                if ns.enabled and framework.player.Character and spawned then
                     if ns and not ns.enabled then
                         esp:setvis(npc, false)
                         continue
@@ -706,7 +727,7 @@ runservice.RenderStepped:Connect(function()
                         local humanoid = npc.Humanoid
                         local drawings = data.drawings
 
-                        local distance = (root.Position - framework.player.Character.HumanoidRootPart.Position).Magnitude
+                        local distance = (root.Position - cached_root.Position).Magnitude
                         if Game == "pd" then distance = distance / 3 end
 
                         if ns.maxdis ~= 0 and distance > ns.maxdis then
@@ -911,7 +932,12 @@ runservice.RenderStepped:Connect(function()
         end
 
         for item, data in pairs(framework.items) do
-            if is.enabled and framework.player.Character and framework.player.Character:FindFirstChild("HumanoidRootPart") then
+            if not is.enabled or not framework.player.Character or not spawned then
+                data.drawings.name.Visible = false
+                data.drawings.distance.Visible = false
+                continue
+            end
+            if is.enabled and framework.player.Character and spawned then
                 local root = data.root
                 if not root or not root.Parent then
                     data.drawings.name.Visible = false
@@ -919,7 +945,7 @@ runservice.RenderStepped:Connect(function()
                     continue
                 end
 
-                local distance = (root.Position - framework.player.Character.HumanoidRootPart.Position).Magnitude / 3
+                local distance = (root.Position - cached_root.Position).Magnitude / 3
                 if is.maxdis ~= 0 and distance > is.maxdis then
                     data.drawings.name.Visible = false
                     data.drawings.distance.Visible = false
@@ -957,7 +983,7 @@ runservice.RenderStepped:Connect(function()
         end
 
         for corpse, data in pairs(framework.corpses) do
-            if cs.enabled and framework.player.Character and framework.player.Character:FindFirstChild("HumanoidRootPart") then
+            if cs.enabled and framework.player.Character and spawned then
                 local root = data.root
                 if not root or not root.Parent then
                     data.drawings.name.Visible = false
@@ -965,7 +991,7 @@ runservice.RenderStepped:Connect(function()
                     continue
                 end
 
-                local distance = (root.Position - framework.player.Character.HumanoidRootPart.Position).Magnitude / 3
+                local distance = (root.Position - cached_root.Position).Magnitude / 3
                 if cs.maxdis ~= 0 and distance > cs.maxdis then
                     data.drawings.name.Visible = false
                     data.drawings.distance.Visible = false
