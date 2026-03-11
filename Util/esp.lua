@@ -623,11 +623,7 @@ runservice.RenderStepped:Connect(function()
                     if not data._hiding then
                         data._hiding = true
                         data.faded = true
-                        if esp.settings.fade.fadeout then
-                            esp:fadeplayer(player, 1)
-                        else
-                            esp:setvis(player, false)
-                        end
+                        esp:setvis(player, false)
                     end
                 end
             else
@@ -851,11 +847,7 @@ runservice.RenderStepped:Connect(function()
                     if not data._hiding then
                         data._hiding = true
                         data.faded = true
-                        if esp.settings.fade.fadeout then
-                            esp:fadeplayer(npc, 1)
-                        else
-                            esp:setvis(npc, false)
-                        end
+                        esp:setvis(player, false)
                     end
                 end
             else
