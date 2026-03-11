@@ -390,7 +390,7 @@ local spawned = false
 local cached_root = nil
 local cached_humanoid = nil
 local cached_head = nil
-runservice.RenderStepped:Connect(function()
+runservice.Heartbeat:Connect(function()
     if framework.player and framework.player.Character and framework.player.Character:FindFirstChild("HumanoidRootPart") and framework.player.Character:FindFirstChild("Humanoid") and framework.player.Character:FindFirstChild("Head") then
         spawned = true
         cached_root = framework.player.Character.HumanoidRootPart
@@ -405,7 +405,7 @@ runservice.RenderStepped:Connect(function()
 
     for player,data in pairs(framework.players) do
         if esp.settings.enabled and not data.client and spawned then
-            if data.spawned and data.character:FindFirstChild("HumanoidRootPart") and data.character:FindFirstChild("Humanoid") and data.character:FindFirstChild("Head") then
+            if data.spawned and data.character:FindFirstChild("HumanoidRootPart") and data.character:FindFirstChild("Humanoid") and data.character.Humanoid.Health > 0 and data.character:FindFirstChild("Head") then
                 local character = data.character
                 local root = data.root
                 local head = character.Head
@@ -707,6 +707,11 @@ runservice.RenderStepped:Connect(function()
         local is = esp.settings.pd_settings.item
         local cs = esp.settings.pd_settings.corpse
 
+        if not cached_root then return end
+        local localpos = cached_root.Position
+        local camlook = camera.CFrame.LookVector
+        local campos = camera.CFrame.Position
+
         for npc, data in pairs(framework.npcs) do
                 local ns;
                 if Game == "pd" then
@@ -721,7 +726,7 @@ runservice.RenderStepped:Connect(function()
                         continue
                     end
 
-                    if npc and npc.Parent and npc:FindFirstChild("HumanoidRootPart") and npc:FindFirstChild("Humanoid") and npc:FindFirstChild("Head") then
+                    if npc and npc.Parent and npc:FindFirstChild("HumanoidRootPart") and npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 and npc:FindFirstChild("Head") then
                         local head = npc.Head
                         local root = npc.HumanoidRootPart
                         local humanoid = npc.Humanoid
@@ -930,14 +935,10 @@ runservice.RenderStepped:Connect(function()
                     end
                 end
         end
-
-        for item, data in pairs(framework.items) do
-            if not is.enabled or not framework.player.Character or not spawned then
-                data.drawings.name.Visible = false
-                data.drawings.distance.Visible = false
-                continue
-            end
-            if is.enabled and framework.player.Character and spawned then
+        
+        if is.enabled then
+            local maxdis_sq = is.maxdis ~= 0 and (is.maxdis * 3) * (is.maxdis * 3) or 0
+            for item, data in pairs(framework.items) do
                 local root = data.root
                 if not root or not root.Parent then
                     data.drawings.name.Visible = false
@@ -945,8 +946,17 @@ runservice.RenderStepped:Connect(function()
                     continue
                 end
 
-                local distance = (root.Position - cached_root.Position).Magnitude / 3
-                if is.maxdis ~= 0 and distance > is.maxdis then
+                local diff = root.Position - localpos
+                local dist_sq = diff.X*diff.X + diff.Y*diff.Y + diff.Z*diff.Z
+
+                if maxdis_sq ~= 0 and dist_sq > maxdis_sq then
+                    data.drawings.name.Visible = false
+                    data.drawings.distance.Visible = false
+                    continue
+                end
+
+                local dir = root.Position - campos
+                if dir:Dot(camlook) < 0 then
                     data.drawings.name.Visible = false
                     data.drawings.distance.Visible = false
                     continue
@@ -955,6 +965,7 @@ runservice.RenderStepped:Connect(function()
                 local screen, onscreen = camera:WorldToViewportPoint(root.Position)
                 if onscreen then
                     local sp = Vector2.new(screen.X, screen.Y)
+
                     if is.name.enabled then
                         data.drawings.name.Text = item.Name
                         data.drawings.name.Color = is.name.color
@@ -965,7 +976,11 @@ runservice.RenderStepped:Connect(function()
                     else data.drawings.name.Visible = false end
 
                     if is.distance.enabled then
-                        data.drawings.distance.Text = tostring(math.round(distance)) .. "m"
+                        local dist_str = math.round(math.sqrt(dist_sq) / 3) .. "m"
+                        if data._last_dist ~= dist_str then
+                            data._last_dist = dist_str
+                            data.drawings.distance.Text = dist_str
+                        end
                         data.drawings.distance.Color = is.distance.color
                         data.drawings.distance.Size = is.distance.size
                         data.drawings.distance.Outline = is.distance.outline
@@ -976,14 +991,17 @@ runservice.RenderStepped:Connect(function()
                     data.drawings.name.Visible = false
                     data.drawings.distance.Visible = false
                 end
-            else
+            end
+        else
+            for item, data in pairs(framework.items) do
                 data.drawings.name.Visible = false
                 data.drawings.distance.Visible = false
             end
         end
 
-        for corpse, data in pairs(framework.corpses) do
-            if cs.enabled and framework.player.Character and spawned then
+        if cs.enabled then
+            local maxdis_sq = cs.maxdis ~= 0 and (cs.maxdis * 3) * (cs.maxdis * 3) or 0
+            for corpse, data in pairs(framework.corpses) do
                 local root = data.root
                 if not root or not root.Parent then
                     data.drawings.name.Visible = false
@@ -991,8 +1009,17 @@ runservice.RenderStepped:Connect(function()
                     continue
                 end
 
-                local distance = (root.Position - cached_root.Position).Magnitude / 3
-                if cs.maxdis ~= 0 and distance > cs.maxdis then
+                local diff = root.Position - localpos
+                local dist_sq = diff.X*diff.X + diff.Y*diff.Y + diff.Z*diff.Z
+
+                if maxdis_sq ~= 0 and dist_sq > maxdis_sq then
+                    data.drawings.name.Visible = false
+                    data.drawings.distance.Visible = false
+                    continue
+                end
+
+                local dir = root.Position - campos
+                if dir:Dot(camlook) < 0 then
                     data.drawings.name.Visible = false
                     data.drawings.distance.Visible = false
                     continue
@@ -1001,6 +1028,7 @@ runservice.RenderStepped:Connect(function()
                 local screen, onscreen = camera:WorldToViewportPoint(root.Position)
                 if onscreen then
                     local sp = Vector2.new(screen.X, screen.Y)
+
                     if cs.corpse_name.enabled then
                         data.drawings.name.Text = corpse.Name
                         data.drawings.name.Color = cs.corpse_name.color
@@ -1011,7 +1039,11 @@ runservice.RenderStepped:Connect(function()
                     else data.drawings.name.Visible = false end
 
                     if cs.corpse_distance.enabled then
-                        data.drawings.distance.Text = tostring(math.round(distance)) .. "m"
+                        local dist_str = math.round(math.sqrt(dist_sq) / 3) .. "m"
+                        if data._last_dist ~= dist_str then
+                            data._last_dist = dist_str
+                            data.drawings.distance.Text = dist_str
+                        end
                         data.drawings.distance.Color = cs.corpse_distance.color
                         data.drawings.distance.Size = cs.corpse_distance.size
                         data.drawings.distance.Outline = cs.corpse_distance.outline
@@ -1022,11 +1054,14 @@ runservice.RenderStepped:Connect(function()
                     data.drawings.name.Visible = false
                     data.drawings.distance.Visible = false
                 end
-            else
+            end
+        else
+            for corpse, data in pairs(framework.corpses) do
                 data.drawings.name.Visible = false
                 data.drawings.distance.Visible = false
             end
         end
+    end
     end
 end)
 
@@ -1061,7 +1096,7 @@ if Game == "pd" then
     end
 
     -- items
-    workspace.DroppedItems.DescendantAdded:Connect(function(child)
+    workspace.DroppedItems.ChildAdded:Connect(function(child)
         if child:IsA("Model") then esp:additem(child) end
     end)
     for _,v in pairs(workspace.DroppedItems:GetDescendants()) do
