@@ -97,6 +97,17 @@ function framework:addplayer(player)
         self.connections[player.Name .. "a"] = player.CharacterAdded:Connect(function(character)
             repeat task.wait() until character:FindFirstChild("HumanoidRootPart")
             self:updateplayer(player)
+
+            local hum = character:FindFirstChild("Humanoid")
+            if hum then
+                hum.Died:Connect(function()
+                    if self.players[player] then
+                        self.players[player].character = nil
+                        self.players[player].root = nil
+                        self.players[player].spawned = false
+                    end
+                end)
+            end
         end)
 
         self.connections[player.Name .. "r"] = player.CharacterRemoving:Connect(function()
@@ -180,6 +191,53 @@ function framework:updateplayer(player)
     end
 end
 
+function framework:validatecache()
+    for _, player in pairs(players:GetChildren()) do
+        if player == self.player then continue end
+
+        if not self.players[player] then
+            warn("[cache miss] player not in cache:", player.Name)
+            self:addplayer(player)
+        else
+            local data = self.players[player]
+            local char = player.Character
+
+            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+                local hum = char.Humanoid
+                local alive = hum.Health > 0
+
+                if alive and not data.spawned then
+                    warn("[cache miss] player alive but marked dead:", player.Name)
+                    self:updateplayer(player)
+                elseif alive and data.character ~= char then
+                    warn("[cache miss] player character mismatch:", player.Name)
+                    self:updateplayer(player)
+                elseif alive and data.root ~= char.HumanoidRootPart then
+                    warn("[cache miss] player root mismatch:", player.Name)
+                    self:updateplayer(player)
+                elseif not alive and data.spawned then
+                    warn("[cache miss] player dead but marked alive:", player.Name)
+                    data.character = nil
+                    data.root = nil
+                    data.spawned = false
+                end
+            elseif not char and data.spawned then
+                warn("[cache miss] player has no character but marked spawned:", player.Name)
+                data.character = nil
+                data.root = nil
+                data.spawned = false
+            end
+        end
+    end
+
+    for player, _ in pairs(self.players) do
+        if not players:FindFirstChild(player.Name) then
+            warn("[cache miss] stale player in cache:", player.Name)
+            self:removeplayer(player)
+        end
+    end
+end
+
 function framework:gcfinder(type, data)
     for i,v in pairs(getgc(true)) do
         if typeof(v) == type then
@@ -206,6 +264,13 @@ function framework:init()
     for _,player in pairs(players:GetChildren()) do
         self:addplayer(player)
     end
+
+    task.spawn(function()
+        while true do
+            task.wait(10)
+            self:validatecache()
+        end
+    end)
 end
 
 function framework:unload()
