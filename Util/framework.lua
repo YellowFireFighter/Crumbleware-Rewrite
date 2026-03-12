@@ -97,16 +97,12 @@ function framework:addplayer(player)
         self.connections[player.Name .. "a"] = player.CharacterAdded:Connect(function(character)
             repeat task.wait() until character:FindFirstChild("HumanoidRootPart")
             self:updateplayer(player)
-
-            repeat task.wait() until not character:FindFirstChild("HumanoidRootPart")
-            self:updateplayer(player)
         end)
 
         self.connections[player.Name .. "r"] = player.CharacterRemoving:Connect(function()
-            task.spawn(function()
-                repeat task.wait() until framework.character == nil or framework.character == false or not framework.character:FindFirstChild("HumanoidRootPart")
-                self:updateplayer(player)
-            end)
+            self.players[player].character = nil
+            self.players[player].root = nil
+            self.players[player].spawned = false
         end)
 
         self:info("add player " .. player.Name)
@@ -121,16 +117,19 @@ function framework:addplayer(player)
 end
 
 function framework:_cleanupDrawings(tbl)
+    local to_remove = {}
+
     for k, v in pairs(tbl) do
-        if typeof(v) == "table" then
-            self:_cleanupDrawings(v)
-            tbl[k] = nil
+        table.insert(to_remove, { key = k, val = v })
+    end
+
+    for _, entry in ipairs(to_remove) do
+        if typeof(entry.val) == "table" then
+            self:_cleanupDrawings(entry.val)
         else
-            pcall(function()
-                v:Remove()
-            end)
-            tbl[k] = nil
+            pcall(function() entry.val:Remove() end)
         end
+        tbl[entry.key] = nil
     end
 end
 
@@ -159,6 +158,11 @@ function framework:removeplayer(player)
 end
 
 function framework:updateplayer(player)
+    if not self.players[player] then
+        self:addplayer(player)
+        return
+    end
+
     if self.players[player] then
         if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             self.players[player].character = player.Character
