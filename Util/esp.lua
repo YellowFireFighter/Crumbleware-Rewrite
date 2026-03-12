@@ -424,7 +424,7 @@ runservice.Heartbeat:Connect(function()
                 if esp.settings.maxdis ~= 0 and distance > esp.settings.maxdis then esp:setvis(player, false) continue end
 
                 if humanoid.Health > 0 and esp.settings.fade.fadein and data.faded then
-                    esp:fadeplayer(player, 1)
+                    esp:fadeplayer(player, 0)
                     data.faded = false
                     data._hiding = false
                 elseif humanoid.Health > 0 and not esp.settings.fade.fadein and data.faded then
@@ -432,7 +432,7 @@ runservice.Heartbeat:Connect(function()
                     data._hiding = false
                 elseif humanoid.Health <= 0 and not data.faded then
                     if esp.settings.fade.fadeout then
-                        esp:fadeplayer(player, 0)
+                        esp:fadeplayer(player, 1)
                         data.faded = true
                         data._hiding = true
                     else
@@ -741,13 +741,13 @@ runservice.Heartbeat:Connect(function()
                         end
 
                         if humanoid.Health > 0 and esp.settings.fade.fadein and data.faded then
-                            esp:fadeplayer(npc, 1)
+                            esp:fadeplayer(npc, 0)
                             data.faded = false
                         elseif humanoid.Health > 0 and not esp.settings.fade.fadein and data.faded then
                             data.faded = false
                         elseif humanoid.Health <= 0 and not data.faded then
                             if esp.settings.fade.fadeout then
-                                esp:fadeplayer(npc, 0)
+                                esp:fadeplayer(npc, 1)
                             else
                                 esp:setvis(npc, false)
                             end
@@ -921,9 +921,9 @@ runservice.Heartbeat:Connect(function()
                     else
                         if not data._hiding then
                             if esp.settings.fade.fadeout then
-                                esp:fadeplayer(player, 1)
+                                esp:fadeplayer(npc, 1)
                             else
-                                esp:setvis(player, false)
+                                esp:setvis(npc, false)
                             end
                             data._hiding = true
                             data.faded = true
