@@ -284,7 +284,7 @@ end
 function esp:gettool(player)
     player = player or framework.player
 
-    if Game == "vs" or Game == "bb" then
+    if Game == "vs" or Game == "bb" or Game == "uni" then
         if player and player.Character then
             return player.Character:FindFirstChildWhichIsA("Tool")
         end
