@@ -4748,7 +4748,7 @@ local Library do
             if DisplayOptions then
                 for _, Option in DisplayOptions do
                     if Option == "UID" then
-                        TableInsert(TextParts, "UID: " .. tostring(1))
+                        TableInsert(TextParts, "UID: " .. tostring(uid))
                     elseif Option == "FPS" then
                         local FPS = math.floor(1 / RunService.RenderStepped:Wait())
                         TableInsert(TextParts, "FPS: " .. tostring(FPS))
