@@ -83,6 +83,7 @@ function esp:initplayer(player)
     if player and player ~= framework.player then
         framework.players[player].drawings = { }
         framework.players[player].faded = true
+        framework.npcs[player]._hiding = true
 
         framework.players[player].drawings.name = framework:draw("Text", {Color = Color3.fromRGB(255, 255, 255), Outline = false, Center = true, Size = 14, Font = font})
         framework.players[player].drawings.distance = framework:draw("Text", {Color = Color3.fromRGB(255, 255, 255), Outline = false, Center = true, Size = 14, Font = font})
@@ -219,11 +220,10 @@ function esp:setvis(entity, vis)
 end
 
 function esp:fadeplayer(entity, transparency)
-    transparency = transparency - 1
     local data = esp:getdata(entity)
     if not data or not data.drawings then return end
 
-    local fadingIn = transparency == 0
+    local fadingIn = transparency == 1
 
     if not fadingIn then
         if data._hiding then return end
@@ -306,6 +306,7 @@ function esp:addnpc(npc)
     if npc:FindFirstChild("Humanoid") and npc:FindFirstChild("HumanoidRootPart") then
         framework.npcs[npc] = {drawings = { }}
         framework.npcs[npc].faded = true
+        framework.npcs[npc]._hiding = true
 
         framework.npcs[npc].drawings.name = framework:draw("Text", {Color = Color3.fromRGB(255, 255, 255), Outline = false, Center = true, Size = 14, Font = font})
         framework.npcs[npc].drawings.distance = framework:draw("Text", {Color = Color3.fromRGB(255, 255, 255), Outline = false, Center = true, Size = 14, Font = font})
@@ -425,7 +426,7 @@ runservice.Heartbeat:Connect(function()
                 if esp.settings.maxdis ~= 0 and distance > esp.settings.maxdis then esp:setvis(player, false) continue end
 
                 if humanoid.Health > 0 and esp.settings.fade.fadein and data.faded then
-                    esp:fadeplayer(player, 0)
+                    esp:fadeplayer(player, 1)
                     data.faded = false
                     data._hiding = false
                 elseif humanoid.Health > 0 and not esp.settings.fade.fadein and data.faded then
@@ -433,7 +434,7 @@ runservice.Heartbeat:Connect(function()
                     data._hiding = false
                 elseif humanoid.Health <= 0 and not data.faded then
                     if esp.settings.fade.fadeout then
-                        esp:fadeplayer(player, 1)
+                        esp:fadeplayer(player, 0)
                         data.faded = true
                         data._hiding = true
                     else
@@ -687,7 +688,7 @@ runservice.Heartbeat:Connect(function()
             else
                 if not data._hiding then
                     if esp.settings.fade.fadeout then
-                        esp:fadeplayer(player, 1)
+                        esp:fadeplayer(player, 0)
                     else
                         esp:setvis(player, false)
                     end
@@ -742,13 +743,13 @@ runservice.Heartbeat:Connect(function()
                         end
 
                         if humanoid.Health > 0 and esp.settings.fade.fadein and data.faded then
-                            esp:fadeplayer(npc, 0)
+                            esp:fadeplayer(npc, 1)
                             data.faded = false
                         elseif humanoid.Health > 0 and not esp.settings.fade.fadein and data.faded then
                             data.faded = false
                         elseif humanoid.Health <= 0 and not data.faded then
                             if esp.settings.fade.fadeout then
-                                esp:fadeplayer(npc, 1)
+                                esp:fadeplayer(npc, 0)
                             else
                                 esp:setvis(npc, false)
                             end
@@ -922,7 +923,7 @@ runservice.Heartbeat:Connect(function()
                     else
                         if not data._hiding then
                             if esp.settings.fade.fadeout then
-                                esp:fadeplayer(npc, 1)
+                                esp:fadeplayer(npc, 0)
                             else
                                 esp:setvis(npc, false)
                             end
