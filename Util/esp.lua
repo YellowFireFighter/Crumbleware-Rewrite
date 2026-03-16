@@ -219,6 +219,7 @@ function esp:setvis(entity, vis)
 end
 
 function esp:fadeplayer(entity, transparency)
+    transparency = transparency - 1
     local data = esp:getdata(entity)
     if not data or not data.drawings then return end
 
