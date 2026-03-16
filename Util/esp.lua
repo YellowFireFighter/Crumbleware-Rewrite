@@ -83,7 +83,7 @@ function esp:initplayer(player)
     if player and player ~= framework.player then
         framework.players[player].drawings = { }
         framework.players[player].faded = true
-        framework.npcs[player]._hiding = true
+        framework.players[player]._hiding = true
 
         framework.players[player].drawings.name = framework:draw("Text", {Color = Color3.fromRGB(255, 255, 255), Outline = false, Center = true, Size = 14, Font = font})
         framework.players[player].drawings.distance = framework:draw("Text", {Color = Color3.fromRGB(255, 255, 255), Outline = false, Center = true, Size = 14, Font = font})
