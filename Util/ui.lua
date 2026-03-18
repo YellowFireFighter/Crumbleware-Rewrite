@@ -653,15 +653,34 @@ local Library do
         end 
     end
 
-    -- Custom font
-    local CustomFont = { } do
+    -- Custom Font
+    local CustomFont = {} do
+        local function waitForAsset(path, maxTries)
+            local asset
+            for _ = 1, maxTries or 20 do
+                local ok, result = pcall(getcustomasset, path)
+                if ok and result and result ~= "" then
+                    asset = result
+                    break
+                end
+                task.wait(0.05)
+            end
+            return asset
+        end
+
         function CustomFont:New(Name, Weight, Style, Data)
-            if isfile(Library.Folders.Assets .. "/" .. Name .. ".json") then
-                return Font.new(getcustomasset(Library.Folders.Assets .. "/" .. Name .. ".json"))
+            local base = Library.Folders.Assets .. "/" .. Name
+            local ttfPath = base .. ".ttf"
+            local jsonPath = base .. ".json"
+
+            if not isfile(ttfPath) then
+                writefile(ttfPath, game:HttpGet(Data.Url))
             end
 
-            if not isfile(Library.Folders.Assets .. "/" .. Name .. ".ttf") then 
-                writefile(Library.Folders.Assets .. "/" .. Name .. ".ttf", game:HttpGet(Data.Url))
+            local ttfAsset = waitForAsset(ttfPath)
+            if not ttfAsset then
+                warn("CustomFont: failed to load TTF for " .. Name)
+                return nil
             end
 
             local FontData = {
@@ -670,17 +689,26 @@ local Library do
                     name = "Regular",
                     weight = Weight,
                     style = Style,
-                    assetId = getcustomasset(Library.Folders.Assets .. "/" .. Name .. ".ttf")
+                    assetId = ttfAsset,
                 } }
             }
 
-            writefile(Library.Folders.Assets .. "/" .. Name .. ".json", HttpService:JSONEncode(FontData))
-            return Font.new(getcustomasset(Library.Folders.Assets .. "/" .. Name .. ".json"))
+            writefile(jsonPath, HttpService:JSONEncode(FontData))
+
+            local jsonAsset = waitForAsset(jsonPath)
+            if not jsonAsset then
+                warn("CustomFont: failed to load JSON for " .. Name)
+                return nil
+            end
+
+            return Font.new(jsonAsset)
         end
 
         function CustomFont:Get(Name)
-            if isfile(Library.Folders.Assets .. "/" .. Name .. ".json") then
-                return Font.new(getcustomasset(Library.Folders.Assets .. "/" .. Name .. ".json"))
+            local jsonPath = Library.Folders.Assets .. "/" .. Name .. ".json"
+            local asset = waitForAsset(jsonPath, 5)
+            if asset then
+                return Font.new(asset)
             end
         end
 
@@ -697,6 +725,16 @@ local Library do
         ZIndexBehavior = Enum.ZIndexBehavior.Global,
         DisplayOrder = 2,
         ResetOnSpawn = false
+    })
+
+    Library.Modal = Instances:Create("TextButton", {
+        Parent = Library.Holder.Instance,
+        Name = "\0",
+        Text = "",
+        BackgroundTransparency = 0,
+        TextTransparency = 0,
+        Visible = true,
+        Modal = true
     })
 
     Library.UnusedHolder = Instances:Create("ScreenGui", {
@@ -1531,7 +1569,6 @@ local Library do
                     BorderSizePixel = 0,
                     TextSize = 14,
                     BackgroundColor3 = FromRGB(255, 255, 255),
-                    Modal = true
                 })
 
                 Items["Indicator"] = Instances:Create("Frame", {
@@ -3839,7 +3876,7 @@ local Library do
 
             local Update = function()
                 if KeylistItem then
-                    if Data.Name ~= "Menu keybind" then
+                    if Data.Name ~= "UI Keybind" then
                         KeylistItem:SetText(Keybind.Value, Data.Name, Keybind.Mode)
                         KeylistItem:SetStatus(Keybind.Toggled)
                     end
@@ -4748,7 +4785,7 @@ local Library do
             if DisplayOptions then
                 for _, Option in DisplayOptions do
                     if Option == "UID" then
-                        TableInsert(TextParts, "UID: " .. tostring(uid))
+                        TableInsert(TextParts, "UID: " .. tostring(1))
                     elseif Option == "FPS" then
                         local FPS = math.floor(1 / RunService.RenderStepped:Wait())
                         TableInsert(TextParts, "FPS: " .. tostring(FPS))
@@ -5692,6 +5729,7 @@ local Library do
         Library:Connect(UserInputService.InputBegan, function(Input)
             if tostring(Input.KeyCode) == Library.MenuKeybind or tostring(Input.UserInputType) == Library.MenuKeybind then
                 Window:SetOpen(not Window.IsOpen)
+                self.Modal.Instance.Visible = Window.IsOpen
             end
         end)
 
