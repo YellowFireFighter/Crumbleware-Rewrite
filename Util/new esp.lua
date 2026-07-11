@@ -8,8 +8,8 @@
         boxes (full + corner), names, health bar, ammo bar, distance, weapon,
         team check + team colors, head circle, skeleton, look-angle line,
         off-screen arrows, occluded chams, outlines on everything (toggle),
-        fade in/out, and full positioning control (move name / health / ammo /
-        distance / weapon anywhere around the box).
+        fade in/out, full positioning control, AI/NPC ESP, loot ESP,
+        and inventory value display.
 
     Usage (see esp_example.lua):
         local ESP = loadstring(game:HttpGet("...juanita_esp.lua"))()
@@ -20,15 +20,15 @@
           "minimal callbacks, logic in RenderStepped" pattern.
         - Drawing objects are created ONCE per player and reused. Nothing is
           created or destroyed on the render loop.
-        - Ammo is not standardized in Roblox. The reader below looks for common
-          value names on the equipped Tool (Ammo / MaxAmmo, etc). Tweak
-          ReadAmmo for your specific game if needed.
+        - Dual-outline approach: outer black square + inner black square frame
+          the colored box line so outlines never render on top.
 ]]
 
 --//ANCHOR Services & caching
 local Players      = game:GetService("Players")
 local RunService   = game:GetService("RunService")
 local Workspace    = game:GetService("Workspace")
+local RepStorage   = game:GetService("ReplicatedStorage")
 
 local LocalPlayer  = Players.LocalPlayer
 local Camera       = Workspace.CurrentCamera
@@ -48,10 +48,22 @@ local ESP = {
     Library     = nil,
     Objects     = { },   -- [player] = drawing pool
     Chams       = { },   -- [player] = { Visible = Highlight, Occluded = Highlight }
+    NPCObjects  = { },   -- [model]  = drawing pool  (AI/NPC ESP)
+    LootPools   = { },   -- [model]  = loot draw pool (Loot ESP)
     Connections = { },
     Loaded      = false,
     Unloaded    = false,
 }
+
+--//ANCHOR NPC / Loot runtime state (not in the table to keep it lightweight)
+local npc_container    = nil
+local npc_rescan_timer = 0
+local NPC_RESCAN_INTERVAL = 3
+
+local loot_rescan_timer = 0
+local LOOT_RESCAN_INTERVAL = 2
+
+local item_value_cache = {} -- [itemName] -> number or false
 
 --//ANCHOR Skeleton bone maps (part-name pairs)
 local R15_BONES = {
@@ -142,16 +154,19 @@ end
 local function CreatePool()
     local pool = { }
 
-    --// Box (full) + outline
-    pool.BoxOutline = MakeSquare(false)
-    pool.Box        = MakeSquare(false)
+    --// Box (full) + dual outline (outer black + inner black, colored box between)
+    pool.BoxOutline      = MakeSquare(false)
+    pool.BoxInnerOutline = MakeSquare(false)
+    pool.Box             = MakeSquare(false)
 
-    --// Corner box: 8 segments + 8 outline segments
+    --// Corner box: 8 colored segments + 16 outline segments (2 per colored, ±1px offset)
     pool.Corners        = { }
     pool.CornerOutlines = { }
-    for i = 1, 8 do
+    for i = 1, 16 do
         pool.CornerOutlines[i] = MakeLine()
-        pool.Corners[i]        = MakeLine()
+    end
+    for i = 1, 8 do
+        pool.Corners[i] = MakeLine()
     end
 
     --// Health bar (bg / fill / outline)
@@ -165,9 +180,10 @@ local function CreatePool()
     pool.AmmoFill    = MakeSquare(true)
 
     --// Texts
-    pool.Name     = MakeText()
-    pool.Distance = MakeText()
-    pool.Weapon   = MakeText()
+    pool.Name           = MakeText()
+    pool.Distance       = MakeText()
+    pool.Weapon         = MakeText()
+    pool.InventoryValue = MakeText()
 
     --// Head circle + outline
     pool.HeadOutline = NewDrawing("Circle", { Thickness = 3, Filled = false, Visible = false })
@@ -196,14 +212,37 @@ local function CreatePool()
     return pool
 end
 
+--//ANCHOR Loot draw pool (lightweight: name + distance only)
+local function CreateLootPool()
+    return {
+        Name     = MakeText(),
+        Distance = MakeText(),
+    }
+end
+
+local function RemoveLootPool(pool)
+    if not pool then return end
+    SafeRemove(pool.Name)
+    SafeRemove(pool.Distance)
+end
+
+local function HideLootPool(pool)
+    if pool.Name.Visible then pool.Name.Visible = false end
+    if pool.Distance.Visible then pool.Distance.Visible = false end
+end
+
+--//ANCHOR RemovePool
 local function RemovePool(pool)
     if not pool then return end
 
     SafeRemove(pool.BoxOutline)
+    SafeRemove(pool.BoxInnerOutline)
     SafeRemove(pool.Box)
 
-    for i = 1, 8 do
+    for i = 1, 16 do
         SafeRemove(pool.CornerOutlines[i])
+    end
+    for i = 1, 8 do
         SafeRemove(pool.Corners[i])
     end
 
@@ -218,6 +257,7 @@ local function RemovePool(pool)
     SafeRemove(pool.Name)
     SafeRemove(pool.Distance)
     SafeRemove(pool.Weapon)
+    SafeRemove(pool.InventoryValue)
 
     SafeRemove(pool.HeadOutline)
     SafeRemove(pool.Head)
@@ -240,11 +280,12 @@ local function Hide(obj)
 end
 
 local function HidePool(pool)
-    Hide(pool.BoxOutline) Hide(pool.Box)
-    for i = 1, 8 do Hide(pool.CornerOutlines[i]) Hide(pool.Corners[i]) end
+    Hide(pool.BoxOutline) Hide(pool.BoxInnerOutline) Hide(pool.Box)
+    for i = 1, 16 do Hide(pool.CornerOutlines[i]) end
+    for i = 1, 8 do Hide(pool.Corners[i]) end
     Hide(pool.HealthOutline) Hide(pool.HealthBg) Hide(pool.HealthFill)
     Hide(pool.AmmoOutline) Hide(pool.AmmoBg) Hide(pool.AmmoFill)
-    Hide(pool.Name) Hide(pool.Distance) Hide(pool.Weapon)
+    Hide(pool.Name) Hide(pool.Distance) Hide(pool.Weapon) Hide(pool.InventoryValue)
     Hide(pool.HeadOutline) Hide(pool.Head)
     Hide(pool.LookOutline) Hide(pool.Look)
     Hide(pool.ArrowOutline) Hide(pool.Arrow)
@@ -252,11 +293,7 @@ local function HidePool(pool)
 end
 
 --//ANCHOR Chams (occluded chams via cloned model + dual Highlights)
---// Faithful to the OccludedChams technique: a slightly smaller welded clone
---// carries the AlwaysOnTop (through-wall) highlight, while the real character
---// carries the Occluded (line-of-sight) highlight.
 local function BuildChams(player, character)
-    --// drop any previous build first
     local old = ESP.Chams[player]
     if old then
         if old.Los then old.Los:Destroy() end
@@ -276,12 +313,12 @@ local function BuildChams(player, character)
         cloned.CanCollide   = false
         cloned.Anchored     = false
         cloned.CastShadow   = false
-        cloned.Transparency = 1 -- only the highlight should show, not duplicate geometry
+        cloned.Transparency = 1
         if cloned:IsA("MeshPart") then cloned.TextureID = "" end
-        cloned.Size   = cloned.Size * 0.99 -- prevents z-fighting with the line-of-sight highlight
+        cloned.Size   = cloned.Size * 0.99
         cloned.Parent = model
 
-        local weld = Instance.new("WeldConstraint") -- keep the clone flush with the real part
+        local weld = Instance.new("WeldConstraint")
         weld.Part0  = cloned
         weld.Part1  = child
         weld.Parent = cloned
@@ -289,14 +326,12 @@ local function BuildChams(player, character)
 
     model.Parent = Workspace
 
-    --// line-of-sight highlight (real char) -> shown where the player is visible
     local los = Instance.new("Highlight")
     los.DepthMode           = Enum.HighlightDepthMode.Occluded
     los.OutlineTransparency = 1
     los.Adornee             = character
     los.Parent              = character
 
-    --// occlusion highlight (clone) -> shown through walls
     local occ = los:Clone()
     occ.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     occ.Adornee   = model
@@ -325,7 +360,6 @@ local function RemoveChams(player)
 end
 
 local function HideChams(player)
-    --// keep the clone alive (avoid rebuild churn) but disable the fills
     local set = ESP.Chams[player]
     if not set then return end
     if set.Los.Enabled then set.Los.Enabled = false end
@@ -333,16 +367,16 @@ local function HideChams(player)
 end
 
 --//ANCHOR Ammo reader (best-effort, game-specific values)
-local AMMO_NAMES     = { "Ammo", "CurrentAmmo", "Bullets", "Rounds", "Mag", "Magazine" }
-local MAX_AMMO_NAMES = { "MaxAmmo", "MaxBullets", "MaxRounds", "Clip", "ClipSize", "Capacity" }
+local AMMO_NAMES     = { "Ammo", "CurrentAmmo", "Bullets", "Rounds", "Mag", "Magazine", "ammoCurrent" }
+local MAX_AMMO_NAMES = { "MaxAmmo", "MaxBullets", "MaxRounds", "Clip", "ClipSize", "Capacity", "ammoSize" }
 
-local function FindValue(tool, names)
+local function FindValue(parent, names)
     for _, name in ipairs(names) do
-        local v = tool:FindFirstChild(name)
+        local v = parent:FindFirstChild(name)
         if v and v:IsA("ValueBase") then
             return v.Value
         end
-        local attr = tool:GetAttribute(name)
+        local attr = parent:GetAttribute(name)
         if type(attr) == "number" then
             return attr
         end
@@ -354,6 +388,20 @@ local function ReadAmmo(character)
     local tool = character:FindFirstChildOfClass("Tool")
     if not tool then return nil end
 
+    -- Havoc pattern: Tool._data.ammoCurrent / Tool._data.ammoSize
+    local data = tool:FindFirstChild("_data")
+    if data then
+        local curVal = data:FindFirstChild("ammoCurrent")
+        local maxVal = data:FindFirstChild("ammoSize")
+        if curVal and maxVal and curVal:IsA("ValueBase") and maxVal:IsA("ValueBase") then
+            local cur, max = curVal.Value, maxVal.Value
+            if max and max > 0 then
+                return clamp(cur / max, 0, 1), cur, max
+            end
+        end
+    end
+
+    -- fallback: generic names on the tool itself
     local cur = FindValue(tool, AMMO_NAMES)
     local max = FindValue(tool, MAX_AMMO_NAMES)
     if not cur or not max or max <= 0 then return nil end
@@ -364,6 +412,98 @@ end
 local function ReadWeapon(character)
     local tool = character:FindFirstChildOfClass("Tool")
     return tool and tool.Name or nil
+end
+
+--//ANCHOR Inventory value reader (Havoc: ReplicatedStorage.__profiles.<Name>)
+local function ReadInventoryValue(player)
+    local profiles = RepStorage:FindFirstChild("__profiles")
+    if not profiles then return nil end
+    local profile = profiles:FindFirstChild(player.Name)
+    if not profile then return nil end
+
+    -- try direct money / cash value
+    for _, child in ipairs(profile:GetChildren()) do
+        if child:IsA("ValueBase") then
+            local n = child.Name:lower()
+            if n == "cash" or n == "money" or n == "coins" or n == "balance" or n == "roubles" then
+                return child.Value
+            end
+        end
+    end
+
+    -- try inventory folder and sum item counts
+    local inv = profile:FindFirstChild("inventory") or profile:FindFirstChild("Inventory")
+    if inv then
+        local total = 0
+        local found = false
+        for _, item in ipairs(inv:GetChildren()) do
+            if item:IsA("ValueBase") then
+                total = total + (tonumber(item.Value) or 0)
+                found = true
+            elseif item:IsA("Folder") then
+                -- count sub-items
+                total = total + #item:GetChildren()
+                found = true
+            end
+        end
+        if found then return total end
+    end
+
+    -- try attributes
+    local cash = profile:GetAttribute("cash") or profile:GetAttribute("money") or profile:GetAttribute("roubles")
+    if type(cash) == "number" then return cash end
+
+    return nil
+end
+
+--//ANCHOR Loot value reader (best-effort via item modules)
+local function GetLootValue(item_name)
+    if item_value_cache[item_name] ~= nil then
+        local cached = item_value_cache[item_name]
+        return cached ~= false and cached or 0
+    end
+
+    local storage = RepStorage:FindFirstChild("Storage")
+    if not storage then
+        item_value_cache[item_name] = false
+        return 0
+    end
+    local modules = storage:FindFirstChild("Modules")
+    if not modules then
+        item_value_cache[item_name] = false
+        return 0
+    end
+
+    -- try Items/<name>
+    local items = modules:FindFirstChild("Items")
+    if items then
+        local mod = items:FindFirstChild(item_name)
+        if mod and mod:IsA("ModuleScript") then
+            local ok, data = pcall(require, mod)
+            if ok and type(data) == "table" then
+                local val = data.value or data.price or data.worth or data.sellPrice or 0
+                item_value_cache[item_name] = val
+                return val
+            end
+        end
+    end
+
+    -- try Library.itemData
+    local lib = modules:FindFirstChild("Library")
+    if lib then
+        local itemData = lib:FindFirstChild("itemData")
+        if itemData and itemData:IsA("ModuleScript") then
+            local ok, data = pcall(require, itemData)
+            if ok and type(data) == "table" and data[item_name] then
+                local val = data[item_name].value or data[item_name].price or 0
+                item_value_cache[item_name] = val
+                return val
+            end
+        end
+    end
+
+    item_value_cache[item_name] = false
+    return 0
 end
 
 --//ANCHOR Bar drawer
@@ -441,41 +581,60 @@ local function PlaceText(textObj, str, side, layout, color, size, opacity)
     textObj.Visible = true
 end
 
---//ANCHOR Corner box drawer (8 segments)
+--//ANCHOR Corner box drawer (8 colored segments, 16 outline segments — dual ±1px offset)
 local function DrawCorners(pool, minX, minY, maxX, maxY, color, opacity, outlineOn)
     local w   = maxX - minX
     local h   = maxY - minY
     local len = clamp(math.min(w, h) * 0.28, 3, 14)
 
+    --// seg layout: odd = horizontal, even = vertical
     local pts = {
         -- top-left
-        { Vector2new(minX, minY), Vector2new(minX + len, minY) },
-        { Vector2new(minX, minY), Vector2new(minX, minY + len) },
+        { Vector2new(minX, minY), Vector2new(minX + len, minY) },       -- 1 horiz
+        { Vector2new(minX, minY), Vector2new(minX, minY + len) },       -- 2 vert
         -- top-right
-        { Vector2new(maxX, minY), Vector2new(maxX - len, minY) },
-        { Vector2new(maxX, minY), Vector2new(maxX, minY + len) },
+        { Vector2new(maxX, minY), Vector2new(maxX - len, minY) },       -- 3 horiz
+        { Vector2new(maxX, minY), Vector2new(maxX, minY + len) },       -- 4 vert
         -- bottom-left
-        { Vector2new(minX, maxY), Vector2new(minX + len, maxY) },
-        { Vector2new(minX, maxY), Vector2new(minX, maxY - len) },
+        { Vector2new(minX, maxY), Vector2new(minX + len, maxY) },       -- 5 horiz
+        { Vector2new(minX, maxY), Vector2new(minX, maxY - len) },       -- 6 vert
         -- bottom-right
-        { Vector2new(maxX, maxY), Vector2new(maxX - len, maxY) },
-        { Vector2new(maxX, maxY), Vector2new(maxX, maxY - len) },
+        { Vector2new(maxX, maxY), Vector2new(maxX - len, maxY) },       -- 7 horiz
+        { Vector2new(maxX, maxY), Vector2new(maxX, maxY - len) },       -- 8 vert
     }
 
     for i = 1, 8 do
         local seg  = pts[i]
         local line = pool.Corners[i]
-        local out  = pool.CornerOutlines[i]
+        local out1 = pool.CornerOutlines[i * 2 - 1]
+        local out2 = pool.CornerOutlines[i * 2]
 
         if outlineOn then
-            out.From      = seg[1]
-            out.To        = seg[2]
-            out.Color     = Color3new(0, 0, 0)
-            out.Thickness = 3
-            out.Transparency = opacity
-            out.Visible   = true
+            local isHoriz = (i % 2 == 1)
+            if isHoriz then
+                -- offset Y ±1 for horizontal segments
+                out1.From = Vector2new(seg[1].X, seg[1].Y - 1)
+                out1.To   = Vector2new(seg[2].X, seg[2].Y - 1)
+                out2.From = Vector2new(seg[1].X, seg[1].Y + 1)
+                out2.To   = Vector2new(seg[2].X, seg[2].Y + 1)
+            else
+                -- offset X ±1 for vertical segments
+                out1.From = Vector2new(seg[1].X - 1, seg[1].Y)
+                out1.To   = Vector2new(seg[2].X - 1, seg[2].Y)
+                out2.From = Vector2new(seg[1].X + 1, seg[1].Y)
+                out2.To   = Vector2new(seg[2].X + 1, seg[2].Y)
+            end
+            out1.Color     = Color3new(0, 0, 0)
+            out1.Thickness = 1
+            out1.Transparency = opacity
+            out1.Visible   = true
+            out2.Color     = Color3new(0, 0, 0)
+            out2.Thickness = 1
+            out2.Transparency = opacity
+            out2.Visible   = true
         else
-            out.Visible = false
+            out1.Visible = false
+            out2.Visible = false
         end
 
         line.From      = seg[1]
@@ -578,11 +737,64 @@ local function DrawSkeleton(pool, character, color, opacity, outlineOn)
         end
     end
 
-    --// hide any leftover lines from a previous (longer) rig
     for i = #bones + 1, MAX_BONES do
         pool.Skeleton[i].Visible        = false
         pool.SkeletonOutline[i].Visible = false
     end
+end
+
+--//ANCHOR NPC container finder
+local function FindNPCContainer()
+    for _, child in ipairs(Workspace:GetChildren()) do
+        if not child:IsA("Model") then continue end
+        if child:FindFirstChild("NPCs") then return child end
+        for _, sub in ipairs(child:GetChildren()) do
+            if sub:IsA("Model") and sub:FindFirstChild("Humanoid") and sub:FindFirstChild("HumanoidRootPart") then
+                return child
+            end
+        end
+    end
+    return nil
+end
+
+local function GetNPCModels()
+    if not npc_container or not npc_container.Parent then
+        npc_container = FindNPCContainer()
+    end
+    if not npc_container then return {} end
+
+    local models = {}
+    local function scan(parent)
+        for _, child in ipairs(parent:GetChildren()) do
+            if child:IsA("Model") and child:FindFirstChild("Humanoid") and child:FindFirstChild("HumanoidRootPart") then
+                table.insert(models, child)
+            elseif child:IsA("Folder") or (child:IsA("Model") and not child:FindFirstChild("Humanoid")) then
+                scan(child)
+            end
+        end
+    end
+    scan(npc_container)
+    return models
+end
+
+--//ANCHOR Loot scanner
+local function ScanLoots()
+    local buildings = Workspace:FindFirstChild("Buildings")
+    if not buildings then return {} end
+    local loots = buildings:FindFirstChild("Loots")
+    if not loots then return {} end
+
+    local results = {}
+    for _, item in ipairs(loots:GetDescendants()) do
+        if not item:IsA("Model") then continue end
+        local main = item:FindFirstChild("Main")
+        if not main or not main:IsA("BasePart") then continue end
+        -- must have a PromptData or ProximityPrompt to be interactable loot
+        if main:FindFirstChild("PromptData") or main:FindFirstChildOfClass("ProximityPrompt") then
+            table.insert(results, item)
+        end
+    end
+    return results
 end
 
 --//ANCHOR Per-player update (the heavy lifter)
@@ -596,7 +808,7 @@ local function UpdatePlayer(player, pool, deltaTime)
         pool.Fade = 0 HidePool(pool) HideChams(player) return
     end
 
-    --// Team check + distance decide validity (these fade out, they don't snap)
+    --// Team check + distance decide validity
     local enemy = true
     if LocalPlayer.Team and player.Team then
         enemy = (player.Team ~= LocalPlayer.Team)
@@ -610,15 +822,12 @@ local function UpdatePlayer(player, pool, deltaTime)
     if FlagBool("esp_teamcheck") and not enemy then valid = false end
     if distance > maxDist then valid = false end
 
-    --//ANCHOR Fade (alpha = visible amount, 1 = fully visible)
-    --// This runtime treats Drawing.Transparency as OPACITY (1 = visible), so we
-    --// feed alpha straight into Transparency. Target is "is this a valid target",
-    --// NOT "is it on screen" - otherwise off-screen arrows would fade out.
+    --//ANCHOR Fade
     local target = valid and 1 or 0
     if FlagBool("esp_fade") then
         local speed = clamp(FlagNumber("esp_fade_speed", 8), 1, 30)
         pool.Fade = pool.Fade + (target - pool.Fade) * clamp(deltaTime * speed, 0, 1)
-        if pool.Fade ~= pool.Fade then pool.Fade = target end -- NaN guard
+        if pool.Fade ~= pool.Fade then pool.Fade = target end
     else
         pool.Fade = target
     end
@@ -633,7 +842,7 @@ local function UpdatePlayer(player, pool, deltaTime)
     local alpha     = pool.Fade
     local outlineOn = FlagBool("esp_outlines")
 
-    --// Colors (team color override)
+    --// Colors
     local boxColor = FlagColor("esp_box_color", fromRGB(255, 255, 255))
     if FlagBool("esp_team_color") then
         boxColor = enemy and FlagColor("esp_enemy_color", fromRGB(255, 80, 80))
@@ -678,7 +887,7 @@ local function UpdatePlayer(player, pool, deltaTime)
         end
     end
 
-    --// Off-screen: only the arrow applies, at full alpha (the target is valid)
+    --// Off-screen: only the arrow applies
     if not anyOn then
         HidePool(pool)
         if FlagBool("esp_arrows") then
@@ -693,7 +902,7 @@ local function UpdatePlayer(player, pool, deltaTime)
     local h = maxY - minY
     local textSize = clamp(FlagNumber("esp_text_size", 13), 8, 24)
 
-    --//ANCHOR Box (Full or Corner via dropdown, only one at a time)
+    --//ANCHOR Box (Full or Corner — dual-outline approach)
     local boxType   = FlagString("esp_box_type", "Full")
     local boxOn     = FlagBool("esp_box")
     local fullBox   = boxOn and boxType == "Full"
@@ -701,15 +910,30 @@ local function UpdatePlayer(player, pool, deltaTime)
 
     if fullBox then
         if outlineOn then
+            --// outer outline (1px outside the colored box)
             pool.BoxOutline.Position  = Vector2new(minX - 1, minY - 1)
             pool.BoxOutline.Size      = Vector2new(w + 2, h + 2)
             pool.BoxOutline.Color     = Color3new(0, 0, 0)
-            pool.BoxOutline.Thickness = 3
+            pool.BoxOutline.Thickness = 1
             pool.BoxOutline.Transparency = alpha
             pool.BoxOutline.Filled    = false
             pool.BoxOutline.Visible   = true
+
+            --// inner outline (1px inside the colored box)
+            if w > 2 and h > 2 then
+                pool.BoxInnerOutline.Position  = Vector2new(minX + 1, minY + 1)
+                pool.BoxInnerOutline.Size      = Vector2new(w - 2, h - 2)
+                pool.BoxInnerOutline.Color     = Color3new(0, 0, 0)
+                pool.BoxInnerOutline.Thickness = 1
+                pool.BoxInnerOutline.Transparency = alpha
+                pool.BoxInnerOutline.Filled    = false
+                pool.BoxInnerOutline.Visible   = true
+            else
+                pool.BoxInnerOutline.Visible = false
+            end
         else
-            pool.BoxOutline.Visible = false
+            pool.BoxOutline.Visible      = false
+            pool.BoxInnerOutline.Visible = false
         end
 
         pool.Box.Position  = Vector2new(minX, minY)
@@ -720,8 +944,9 @@ local function UpdatePlayer(player, pool, deltaTime)
         pool.Box.Filled    = false
         pool.Box.Visible   = true
     else
-        pool.Box.Visible = false
-        pool.BoxOutline.Visible = false
+        pool.Box.Visible             = false
+        pool.BoxOutline.Visible      = false
+        pool.BoxInnerOutline.Visible = false
     end
 
     if cornerBox then
@@ -729,11 +954,13 @@ local function UpdatePlayer(player, pool, deltaTime)
     else
         for i = 1, 8 do
             pool.Corners[i].Visible = false
+        end
+        for i = 1, 16 do
             pool.CornerOutlines[i].Visible = false
         end
     end
 
-    --// Layout accumulators (edges move outward as bars are placed)
+    --// Layout accumulators
     local layout = {
         cx        = (minX + maxX) / 2,
         cy        = (minY + maxY) / 2,
@@ -745,11 +972,10 @@ local function UpdatePlayer(player, pool, deltaTime)
         rightSlot = minY,
     }
 
-    --//ANCHOR Health bar (Left / Right / Top / Bottom)
+    --//ANCHOR Health bar
     if FlagBool("esp_health") then
         local realRatio = clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
 
-        --// tween the bar toward the real health so it slides on damage/heal
         local hspeed = clamp(FlagNumber("esp_health_speed", 10), 1, 30)
         pool.HealthRatio = pool.HealthRatio + (realRatio - pool.HealthRatio) * clamp(deltaTime * hspeed, 0, 1)
         if pool.HealthRatio ~= pool.HealthRatio then pool.HealthRatio = realRatio end
@@ -757,9 +983,9 @@ local function UpdatePlayer(player, pool, deltaTime)
 
         local low   = FlagColor("esp_health_low", fromRGB(255, 40, 40))
         local high  = FlagColor("esp_health_high", fromRGB(60, 255, 80))
-        local hcol  = low:Lerp(high, ratio) -- color lerps with the smoothed value
+        local hcol  = low:Lerp(high, ratio)
         local side  = FlagString("esp_health_pos", "Left")
-        local bw     = clamp(FlagNumber("esp_health_width", 3), 1, 12) -- bar thickness
+        local bw    = clamp(FlagNumber("esp_health_width", 3), 1, 12)
 
         if side == "Left" then
             DrawBar(pool.HealthFill, pool.HealthBg, pool.HealthOutline,
@@ -784,7 +1010,7 @@ local function UpdatePlayer(player, pool, deltaTime)
         pool.HealthOutline.Visible = false
     end
 
-    --//ANCHOR Ammo bar (Bottom default; Top / Left / Right supported)
+    --//ANCHOR Ammo bar
     local ammoRatio = FlagBool("esp_ammo") and ReadAmmo(character) or nil
     if ammoRatio then
         local acol = FlagColor("esp_ammo_color", fromRGB(255, 200, 60))
@@ -813,7 +1039,7 @@ local function UpdatePlayer(player, pool, deltaTime)
         pool.AmmoOutline.Visible = false
     end
 
-    --//ANCHOR Texts (name / distance / weapon -> any side)
+    --//ANCHOR Texts (name / distance / weapon / inventory value)
     if FlagBool("esp_name") then
         PlaceText(pool.Name, player.Name, FlagString("esp_name_pos", "Top"),
             layout, FlagColor("esp_name_color", fromRGB(255, 255, 255)), textSize, alpha)
@@ -835,6 +1061,15 @@ local function UpdatePlayer(player, pool, deltaTime)
             layout, FlagColor("esp_weapon_color", fromRGB(180, 180, 255)), textSize, alpha)
     else
         pool.Weapon.Visible = false
+    end
+
+    if FlagBool("esp_inventory_value") then
+        local val = ReadInventoryValue(player)
+        local str = val and ("$%s"):format(tostring(val)) or nil
+        PlaceText(pool.InventoryValue, str, "Bottom",
+            layout, FlagColor("esp_dist_color", fromRGB(200, 200, 200)), textSize, alpha)
+    else
+        pool.InventoryValue.Visible = false
     end
 
     --//ANCHOR Head circle
@@ -929,6 +1164,319 @@ local function UpdatePlayer(player, pool, deltaTime)
     pool.ArrowOutline.Visible = false
 end
 
+--//ANCHOR Per-NPC update (simplified UpdatePlayer for AI entities)
+local function UpdateNPC(model, pool, deltaTime)
+    local hrp      = model:FindFirstChild("HumanoidRootPart")
+    local humanoid = model:FindFirstChildOfClass("Humanoid")
+    if not hrp or not humanoid or humanoid.Health <= 0 then
+        pool.Fade = 0 HidePool(pool) return
+    end
+
+    local camPos   = Camera.CFrame.Position
+    local distance = (hrp.Position - camPos).Magnitude
+    local maxDist  = FlagNumber("esp_maxdist", 1000)
+
+    local valid = distance <= maxDist
+
+    --// Fade
+    local target = valid and 1 or 0
+    if FlagBool("esp_fade") then
+        local speed = clamp(FlagNumber("esp_fade_speed", 8), 1, 30)
+        pool.Fade = pool.Fade + (target - pool.Fade) * clamp(deltaTime * speed, 0, 1)
+        if pool.Fade ~= pool.Fade then pool.Fade = target end
+    else
+        pool.Fade = target
+    end
+
+    if pool.Fade <= 0.02 then
+        if target == 0 then pool.Fade = 0 end
+        HidePool(pool)
+        return
+    end
+
+    local alpha     = pool.Fade
+    local outlineOn = FlagBool("esp_outlines")
+    local boxColor  = FlagColor("esp_ai_color", fromRGB(255, 150, 50))
+
+    --// Bounding box -> screen min/max
+    local cf, size = model:GetBoundingBox()
+    local minX, minY = math.huge, math.huge
+    local maxX, maxY = -math.huge, -math.huge
+    local anyOn      = false
+    local hx, hy, hz = size.X / 2, size.Y / 2, size.Z / 2
+
+    for x = -1, 1, 2 do
+        for y = -1, 1, 2 do
+            for z = -1, 1, 2 do
+                local corner = (cf * CFrame.new(hx * x, hy * y, hz * z)).Position
+                local screen, depth, on = WorldToScreen(corner)
+                if on then anyOn = true end
+                if screen.X < minX then minX = screen.X end
+                if screen.Y < minY then minY = screen.Y end
+                if screen.X > maxX then maxX = screen.X end
+                if screen.Y > maxY then maxY = screen.Y end
+            end
+        end
+    end
+
+    if not anyOn then
+        HidePool(pool)
+        return
+    end
+
+    local w = maxX - minX
+    local h = maxY - minY
+    local textSize = clamp(FlagNumber("esp_text_size", 13), 8, 24)
+
+    --// Box (reuse same logic as player)
+    local boxType   = FlagString("esp_box_type", "Full")
+    local boxOn     = FlagBool("esp_box")
+    local fullBox   = boxOn and boxType == "Full"
+    local cornerBox = boxOn and boxType == "Corner"
+
+    if fullBox then
+        if outlineOn then
+            pool.BoxOutline.Position  = Vector2new(minX - 1, minY - 1)
+            pool.BoxOutline.Size      = Vector2new(w + 2, h + 2)
+            pool.BoxOutline.Color     = Color3new(0, 0, 0)
+            pool.BoxOutline.Thickness = 1
+            pool.BoxOutline.Transparency = alpha
+            pool.BoxOutline.Filled    = false
+            pool.BoxOutline.Visible   = true
+
+            if w > 2 and h > 2 then
+                pool.BoxInnerOutline.Position  = Vector2new(minX + 1, minY + 1)
+                pool.BoxInnerOutline.Size      = Vector2new(w - 2, h - 2)
+                pool.BoxInnerOutline.Color     = Color3new(0, 0, 0)
+                pool.BoxInnerOutline.Thickness = 1
+                pool.BoxInnerOutline.Transparency = alpha
+                pool.BoxInnerOutline.Filled    = false
+                pool.BoxInnerOutline.Visible   = true
+            else
+                pool.BoxInnerOutline.Visible = false
+            end
+        else
+            pool.BoxOutline.Visible      = false
+            pool.BoxInnerOutline.Visible = false
+        end
+
+        pool.Box.Position  = Vector2new(minX, minY)
+        pool.Box.Size      = Vector2new(w, h)
+        pool.Box.Color     = boxColor
+        pool.Box.Thickness = 1
+        pool.Box.Transparency = alpha
+        pool.Box.Filled    = false
+        pool.Box.Visible   = true
+    else
+        pool.Box.Visible             = false
+        pool.BoxOutline.Visible      = false
+        pool.BoxInnerOutline.Visible = false
+    end
+
+    if cornerBox then
+        DrawCorners(pool, minX, minY, maxX, maxY, boxColor, alpha, outlineOn)
+    else
+        for i = 1, 8 do pool.Corners[i].Visible = false end
+        for i = 1, 16 do pool.CornerOutlines[i].Visible = false end
+    end
+
+    --// Layout
+    local layout = {
+        cx        = (minX + maxX) / 2,
+        cy        = (minY + maxY) / 2,
+        topY      = minY - 2,
+        botY      = maxY + 2,
+        leftX     = minX - 4,
+        rightX    = maxX + 4,
+        leftSlot  = minY,
+        rightSlot = minY,
+    }
+
+    --// Health bar
+    if FlagBool("esp_health") then
+        local realRatio = clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+        local hspeed = clamp(FlagNumber("esp_health_speed", 10), 1, 30)
+        pool.HealthRatio = pool.HealthRatio + (realRatio - pool.HealthRatio) * clamp(deltaTime * hspeed, 0, 1)
+        if pool.HealthRatio ~= pool.HealthRatio then pool.HealthRatio = realRatio end
+        local ratio = pool.HealthRatio
+        local low   = FlagColor("esp_health_low", fromRGB(255, 40, 40))
+        local high  = FlagColor("esp_health_high", fromRGB(60, 255, 80))
+        local hcol  = low:Lerp(high, ratio)
+        local side  = FlagString("esp_health_pos", "Left")
+        local bw    = clamp(FlagNumber("esp_health_width", 3), 1, 12)
+
+        if side == "Left" then
+            DrawBar(pool.HealthFill, pool.HealthBg, pool.HealthOutline,
+                minX - (bw + 3), minY, bw, h, ratio, true, hcol, alpha, outlineOn)
+            layout.leftX = layout.leftX - (bw + 5)
+        elseif side == "Right" then
+            DrawBar(pool.HealthFill, pool.HealthBg, pool.HealthOutline,
+                maxX + 3, minY, bw, h, ratio, true, hcol, alpha, outlineOn)
+            layout.rightX = layout.rightX + (bw + 5)
+        elseif side == "Top" then
+            DrawBar(pool.HealthFill, pool.HealthBg, pool.HealthOutline,
+                minX, minY - (bw + 3), w, bw, ratio, false, hcol, alpha, outlineOn)
+            layout.topY = layout.topY - (bw + 5)
+        else
+            DrawBar(pool.HealthFill, pool.HealthBg, pool.HealthOutline,
+                minX, maxY + 3, w, bw, ratio, false, hcol, alpha, outlineOn)
+            layout.botY = layout.botY + (bw + 5)
+        end
+    else
+        pool.HealthFill.Visible    = false
+        pool.HealthBg.Visible      = false
+        pool.HealthOutline.Visible = false
+    end
+
+    --// Ammo bar (NPCs can hold tools too)
+    local ammoRatio = FlagBool("esp_ammo") and ReadAmmo(model) or nil
+    if ammoRatio then
+        local acol = FlagColor("esp_ammo_color", fromRGB(255, 200, 60))
+        DrawBar(pool.AmmoFill, pool.AmmoBg, pool.AmmoOutline,
+            minX, layout.botY, w, 3, ammoRatio, false, acol, alpha, outlineOn)
+        layout.botY = layout.botY + 6
+    else
+        pool.AmmoFill.Visible    = false
+        pool.AmmoBg.Visible      = false
+        pool.AmmoOutline.Visible = false
+    end
+
+    --// Name
+    PlaceText(pool.Name, model.Name, "Top",
+        layout, FlagColor("esp_name_color", fromRGB(255, 255, 255)), textSize, alpha)
+
+    --// Distance
+    if FlagBool("esp_distance") then
+        PlaceText(pool.Distance, ("%dm"):format(round(distance)), "Bottom",
+            layout, FlagColor("esp_dist_color", fromRGB(200, 200, 200)), textSize, alpha)
+    else
+        pool.Distance.Visible = false
+    end
+
+    --// Weapon
+    if FlagBool("esp_weapon") then
+        local weapon = ReadWeapon(model)
+        PlaceText(pool.Weapon, weapon, "Bottom",
+            layout, FlagColor("esp_weapon_color", fromRGB(180, 180, 255)), textSize, alpha)
+    else
+        pool.Weapon.Visible = false
+    end
+
+    --// NPC has no inventory value
+    pool.InventoryValue.Visible = false
+
+    --// Head circle
+    if FlagBool("esp_headcircle") then
+        local head = model:FindFirstChild("Head")
+        if head then
+            local hs, hd, hon = WorldToScreen(head.Position)
+            if hon then
+                local radius = clamp(w * 0.18, 3, 30)
+                if outlineOn then
+                    pool.HeadOutline.Position  = hs
+                    pool.HeadOutline.Radius    = radius
+                    pool.HeadOutline.Color     = Color3new(0, 0, 0)
+                    pool.HeadOutline.Thickness = 3
+                    pool.HeadOutline.Filled    = false
+                    pool.HeadOutline.Transparency = alpha
+                    pool.HeadOutline.Visible   = true
+                else
+                    pool.HeadOutline.Visible = false
+                end
+                pool.Head.Position  = hs
+                pool.Head.Radius    = radius
+                pool.Head.Color     = boxColor
+                pool.Head.Thickness = 1
+                pool.Head.Filled    = false
+                pool.Head.Transparency = alpha
+                pool.Head.Visible   = true
+            else
+                pool.Head.Visible = false
+                pool.HeadOutline.Visible = false
+            end
+        end
+    else
+        pool.Head.Visible = false
+        pool.HeadOutline.Visible = false
+    end
+
+    --// Skeleton
+    if FlagBool("esp_skeleton") then
+        DrawSkeleton(pool, model,
+            FlagColor("esp_skeleton_color", fromRGB(255, 255, 255)), alpha, outlineOn)
+    else
+        for i = 1, MAX_BONES do
+            pool.Skeleton[i].Visible = false
+            pool.SkeletonOutline[i].Visible = false
+        end
+    end
+
+    --// no arrows for NPCs
+    pool.Arrow.Visible = false
+    pool.ArrowOutline.Visible = false
+    pool.Look.Visible = false
+    pool.LookOutline.Visible = false
+end
+
+--//ANCHOR Per-loot update
+local function UpdateLoot(model, pool)
+    local main = model:FindFirstChild("Main")
+    if not main or not main:IsA("BasePart") then
+        HideLootPool(pool)
+        return
+    end
+
+    local pos     = main.Position
+    local camPos  = Camera.CFrame.Position
+    local dist    = (pos - camPos).Magnitude
+    local maxDist = FlagNumber("esp_loot_maxdist", 200)
+
+    if dist > maxDist then
+        HideLootPool(pool)
+        return
+    end
+
+    --// value filter
+    local minVal = FlagNumber("esp_loot_min_value", 0)
+    if minVal > 0 then
+        local val = GetLootValue(model.Name)
+        if val < minVal then
+            HideLootPool(pool)
+            return
+        end
+    end
+
+    local screen, depth, onScreen = WorldToScreen(pos)
+    if not onScreen then
+        HideLootPool(pool)
+        return
+    end
+
+    local color    = FlagColor("esp_loot_color", fromRGB(255, 200, 50))
+    local textSize = clamp(FlagNumber("esp_text_size", 13), 8, 24)
+    local outlines = FlagBool("esp_outlines")
+
+    pool.Name.Text         = model.Name
+    pool.Name.Size         = textSize
+    pool.Name.Font         = PlexFont
+    pool.Name.Color        = color
+    pool.Name.Outline      = outlines
+    pool.Name.Center       = true
+    pool.Name.Transparency = 1
+    pool.Name.Position     = screen
+    pool.Name.Visible      = true
+
+    pool.Distance.Text         = ("%dm"):format(round(dist))
+    pool.Distance.Size         = textSize
+    pool.Distance.Font         = PlexFont
+    pool.Distance.Color        = color
+    pool.Distance.Outline      = outlines
+    pool.Distance.Center       = true
+    pool.Distance.Transparency = 1
+    pool.Distance.Position     = Vector2new(screen.X, screen.Y + textSize + 1)
+    pool.Distance.Visible      = true
+end
+
 --//ANCHOR Render loop
 local function OnRender(deltaTime)
     if ESP.Unloaded then return end
@@ -938,6 +1486,7 @@ local function OnRender(deltaTime)
 
     local masterOn = FlagBool("esp_enabled")
 
+    --// Players
     for player, pool in pairs(ESP.Objects) do
         if not masterOn then
             HidePool(pool)
@@ -947,6 +1496,82 @@ local function OnRender(deltaTime)
             if not ok then
                 HidePool(pool)
             end
+        end
+    end
+
+    --// NPCs
+    local aiOn = masterOn and FlagBool("esp_ai_enabled")
+    if aiOn then
+        npc_rescan_timer = npc_rescan_timer + deltaTime
+        if npc_rescan_timer >= NPC_RESCAN_INTERVAL then
+            npc_rescan_timer = 0
+            -- refresh NPC list
+            local current = GetNPCModels()
+            local alive = {}
+            for _, m in ipairs(current) do
+                alive[m] = true
+                if not ESP.NPCObjects[m] then
+                    ESP.NPCObjects[m] = CreatePool()
+                end
+            end
+            -- remove dead NPCs
+            for m, pool in pairs(ESP.NPCObjects) do
+                if not alive[m] then
+                    RemovePool(pool)
+                    ESP.NPCObjects[m] = nil
+                end
+            end
+        end
+
+        for model, pool in pairs(ESP.NPCObjects) do
+            if not model or not model.Parent then
+                RemovePool(pool)
+                ESP.NPCObjects[model] = nil
+            else
+                local ok = pcall(UpdateNPC, model, pool, deltaTime)
+                if not ok then HidePool(pool) end
+            end
+        end
+    else
+        for _, pool in pairs(ESP.NPCObjects) do
+            HidePool(pool)
+        end
+    end
+
+    --// Loot
+    local lootOn = masterOn and FlagBool("esp_loot_enabled")
+    if lootOn then
+        loot_rescan_timer = loot_rescan_timer + deltaTime
+        if loot_rescan_timer >= LOOT_RESCAN_INTERVAL then
+            loot_rescan_timer = 0
+            local current = ScanLoots()
+            local alive = {}
+            for _, m in ipairs(current) do
+                alive[m] = true
+                if not ESP.LootPools[m] then
+                    ESP.LootPools[m] = CreateLootPool()
+                end
+            end
+            for m, pool in pairs(ESP.LootPools) do
+                if not alive[m] then
+                    RemoveLootPool(pool)
+                    ESP.LootPools[m] = nil
+                end
+            end
+        end
+
+        for model, pool in pairs(ESP.LootPools) do
+            if not model or not model.Parent then
+                RemoveLootPool(pool)
+                ESP.LootPools[model] = nil
+            else
+                local ok = pcall(UpdateLoot, model, pool)
+                if not ok then HideLootPool(pool) end
+            end
+        end
+    else
+        for _, pool in pairs(ESP.LootPools) do
+            HideLootPool(pool)
         end
     end
 end
@@ -992,7 +1617,6 @@ function ESP:BuildMenu(window)
 
     addColor(toggle("Name ", "esp_name", true), "esp_name_color", fromRGB(255, 255, 255))
 
-    --// health carries two colors (high + low), they stack on the toggle
     local healthTog = toggle("Health Bar", "esp_health", true)
     addColor(healthTog, "esp_health_high", fromRGB(60, 255, 80))
     addColor(healthTog, "esp_health_low", fromRGB(255, 40, 40))
@@ -1000,12 +1624,12 @@ function ESP:BuildMenu(window)
     addColor(toggle("Ammo Bar", "esp_ammo", false), "esp_ammo_color", fromRGB(255, 200, 60))
     addColor(toggle("Distance", "esp_distance", true), "esp_dist_color", fromRGB(200, 200, 200))
     addColor(toggle("Weapon", "esp_weapon", false), "esp_weapon_color", fromRGB(180, 180, 255))
+    toggle("Inventory Value", "esp_inventory_value", false)
     addColor(toggle("Head Circle", "esp_headcircle", false), "esp_head_color", fromRGB(255, 255, 255))
     addColor(toggle("Skeleton", "esp_skeleton", false), "esp_skeleton_color", fromRGB(255, 255, 255))
     addColor(toggle("Look Angle", "esp_lookangle", false), "esp_look_color", fromRGB(255, 255, 255))
     addColor(toggle("Off Arrows", "esp_arrows", false), "esp_arrow_color", fromRGB(255, 80, 80))
 
-    --// chams carries visible + occluded colors
     local chamsTog = toggle("Chams", "esp_chams", false)
     addColor(chamsTog, "esp_chams_visible", fromRGB(0, 200, 255))
     addColor(chamsTog, "esp_chams_occluded", fromRGB(255, 40, 40))
@@ -1013,7 +1637,6 @@ function ESP:BuildMenu(window)
     toggle("Outlines", "esp_outlines", true)
     toggle("Team Check", "esp_teamcheck", true)
 
-    --// team color carries enemy + friend colors
     local teamTog = toggle("Team Color", "esp_team_color", false)
     addColor(teamTog, "esp_enemy_color", fromRGB(255, 80, 80))
     addColor(teamTog, "esp_friend_color", fromRGB(80, 160, 255))
@@ -1044,6 +1667,22 @@ function ESP:BuildMenu(window)
     pos:Slider({ Name = "Arrow Size",   Flag = "esp_arrow_size", Min = 8, Max = 40, Default = 18, Decimals = 1, Callback = function() end })
     pos:Slider({ Name = "Chams Fill",   Flag = "esp_chams_fill", Min = 0, Max = 1, Default = 0.5, Decimals = 0.01, Callback = function() end })
 
+    --//ANCHOR AI ESP section (right side)
+    local ai = page:Section({ Name = "AI / NPC ESP", Side = 2 })
+    addColor(
+        ai:Toggle({ Name = "AI ESP Enabled", Flag = "esp_ai_enabled", Default = false, Callback = function() end }),
+        "esp_ai_color", fromRGB(255, 150, 50)
+    )
+
+    --//ANCHOR Loot ESP section (right side)
+    local loot = page:Section({ Name = "Loot ESP", Side = 2 })
+    addColor(
+        loot:Toggle({ Name = "Loot ESP Enabled", Flag = "esp_loot_enabled", Default = false, Callback = function() end }),
+        "esp_loot_color", fromRGB(255, 200, 50)
+    )
+    loot:Slider({ Name = "Loot Max Dist", Flag = "esp_loot_maxdist", Min = 10, Max = 500, Default = 200, Decimals = 1, Suffix = "m", Callback = function() end })
+    loot:Slider({ Name = "Min Value",     Flag = "esp_loot_min_value", Min = 0, Max = 100000, Default = 0, Decimals = 1, Callback = function() end })
+
     return page
 end
 
@@ -1068,6 +1707,9 @@ function ESP:Init(config)
     self.Library:Connect(Players.PlayerRemoving, RemovePlayer)
     self.Library:Connect(RunService.RenderStepped, OnRender)
 
+    --// initial NPC scan
+    npc_container = FindNPCContainer()
+
     self.Loaded = true
     return self
 end
@@ -1082,6 +1724,17 @@ function ESP:Unload()
     for player in pairs(self.Chams) do
         RemoveChams(player)
     end
+    for model in pairs(self.NPCObjects) do
+        RemovePool(self.NPCObjects[model])
+        self.NPCObjects[model] = nil
+    end
+    for model in pairs(self.LootPools) do
+        RemoveLootPool(self.LootPools[model])
+        self.LootPools[model] = nil
+    end
+
+    npc_container = nil
+    item_value_cache = {}
 
     self.Loaded = false
 end
