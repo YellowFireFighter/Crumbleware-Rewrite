@@ -33,7 +33,22 @@ local RepStorage   = game:GetService("ReplicatedStorage")
 local LocalPlayer  = Players.LocalPlayer
 local Camera       = Workspace.CurrentCamera
 
-local PlexFont     = (Drawing and Drawing.Fonts and Drawing.Fonts.Plex) or 2 -- pixel plex font
+-- custom font: download 04B_03 pixel font if available
+local EspFont = 2 -- default fallback
+pcall(function()
+    local ttf_path = "alpha/04B_03__.ttf"
+    if not isfile(ttf_path) then
+        makefolder("alpha")
+        writefile(ttf_path, game:HttpGet("https://github.com/YellowFireFighter/Crumbleware-Rewrite/raw/refs/heads/main/Util/04B_03__.TTF"))
+    end
+    if Drawing and Drawing.Fonts then
+        if Drawing.Fonts.Register then
+            EspFont = Drawing.Fonts.Register(ttf_path)
+        elseif Drawing.Fonts.Plex then
+            EspFont = Drawing.Fonts.Plex
+        end
+    end
+end)
 
 local floor        = math.floor
 local clamp        = math.clamp
@@ -134,7 +149,7 @@ end
 --//ANCHOR Per-player pool factory
 local function MakeText()
     return NewDrawing("Text", {
-        Font = PlexFont,
+        Font = EspFont,
         Size = 13,
         Center = true,
         Outline = true,
@@ -558,7 +573,7 @@ local function PlaceText(textObj, str, side, layout, color, size, opacity)
 
     textObj.Text  = str
     textObj.Size  = size
-    textObj.Font  = PlexFont
+    textObj.Font  = EspFont
     textObj.Color = color
     textObj.Outline      = FlagBool("esp_outlines")
     textObj.Transparency = opacity
@@ -1054,23 +1069,24 @@ local function UpdatePlayer(player, pool, deltaTime)
     if ammoRatio then
         local acol = FlagColor("esp_ammo_color", fromRGB(255, 200, 60))
         local side = FlagString("esp_ammo_pos", "Bottom")
+        local abw = bw -- ammo bar width matches health bar width
 
         if side == "Top" then
             DrawBar(pool.AmmoFill, pool.AmmoBg, pool.AmmoOutline,
-                minX, layout.topY - 4, w, 3, ammoRatio, false, acol, alpha, outlineOn)
-            layout.topY = layout.topY - 6
+                minX, layout.topY - (abw + 3), w, abw, ammoRatio, false, acol, alpha, outlineOn)
+            layout.topY = layout.topY - (abw + 5)
         elseif side == "Left" then
             DrawBar(pool.AmmoFill, pool.AmmoBg, pool.AmmoOutline,
-                layout.leftX - 3, minY, 3, h, ammoRatio, true, acol, alpha, outlineOn)
-            layout.leftX = layout.leftX - 8
+                layout.leftX - (abw + 3), minY, abw, h, ammoRatio, true, acol, alpha, outlineOn)
+            layout.leftX = layout.leftX - (abw + 5)
         elseif side == "Right" then
             DrawBar(pool.AmmoFill, pool.AmmoBg, pool.AmmoOutline,
-                layout.rightX, minY, 3, h, ammoRatio, true, acol, alpha, outlineOn)
-            layout.rightX = layout.rightX + 8
+                layout.rightX + 3, minY, abw, h, ammoRatio, true, acol, alpha, outlineOn)
+            layout.rightX = layout.rightX + (abw + 5)
         else -- Bottom
             DrawBar(pool.AmmoFill, pool.AmmoBg, pool.AmmoOutline,
-                minX, layout.botY, w, 3, ammoRatio, false, acol, alpha, outlineOn)
-            layout.botY = layout.botY + 6
+                minX, layout.botY + 3, w, abw, ammoRatio, false, acol, alpha, outlineOn)
+            layout.botY = layout.botY + (abw + 5)
         end
     else
         pool.AmmoFill.Visible = false
@@ -1104,8 +1120,8 @@ local function UpdatePlayer(player, pool, deltaTime)
 
     --//ANCHOR Player flags (right side of box, stacking downward, scaled to box)
     local flag_idx = 0
-    -- scale flag text proportionally to box height so it doesn't overflow at distance
-    local flag_size = clamp(math.min(textSize - 1, h / 8), 6, 18)
+    -- scale flag text: readable minimum, scale with box but don't let it get tiny
+    local flag_size = clamp(math.min(textSize, h / 4), 9, 20)
 
     if FlagBool("esp_flags") then
         -- level
@@ -1646,7 +1662,7 @@ local function UpdateLoot(model, pool)
 
     pool.Name.Text         = model.Name
     pool.Name.Size         = textSize
-    pool.Name.Font         = PlexFont
+    pool.Name.Font         = EspFont
     pool.Name.Color        = color
     pool.Name.Outline      = outlines
     pool.Name.Center       = true
@@ -1656,7 +1672,7 @@ local function UpdateLoot(model, pool)
 
     pool.Distance.Text         = ("%dm"):format(round(dist))
     pool.Distance.Size         = textSize
-    pool.Distance.Font         = PlexFont
+    pool.Distance.Font         = EspFont
     pool.Distance.Color        = color
     pool.Distance.Outline      = outlines
     pool.Distance.Center       = true
@@ -1801,7 +1817,7 @@ function ESP:BuildMenu(window)
     toggle(main, "Enabled", "esp_enabled", true)
     addColor(toggle(main, "Box", "esp_box", true), "esp_box_color", fromRGB(255, 255, 255))
     main:Dropdown({ Name = "Box Type", Flag = "esp_box_type", Items = { "Full", "Corner" }, Default = "Full", Multi = false, Callback = function() end })
-    addColor(toggle(main, "Name", "esp_name", true), "esp_name_color", fromRGB(255, 255, 255))
+    addColor(toggle(main, "Name ", "esp_name", true), "esp_name_color", fromRGB(255, 255, 255))
 
     local health_tog = toggle(main, "Health Bar", "esp_health", true)
     addColor(health_tog, "esp_health_high", fromRGB(60, 255, 80))
@@ -1844,7 +1860,7 @@ function ESP:BuildMenu(window)
     toggle(ai, "Enabled", "esp_ai_enabled", false)
     addColor(toggle(ai, "Box", "esp_ai_box", true), "esp_ai_color", fromRGB(255, 150, 50))
     ai:Dropdown({ Name = "Box Type", Flag = "esp_ai_box_type", Items = { "Full", "Corner" }, Default = "Full", Multi = false, Callback = function() end })
-    addColor(toggle(ai, "Name", "esp_ai_name", true), "esp_ai_name_color", fromRGB(255, 150, 50))
+    addColor(toggle(ai, "Name ", "esp_ai_name", true), "esp_ai_name_color", fromRGB(255, 150, 50))
     local ai_health = toggle(ai, "Health Bar", "esp_ai_health", true)
     addColor(ai_health, "esp_ai_health_high", fromRGB(60, 255, 80))
     addColor(ai_health, "esp_ai_health_low", fromRGB(255, 40, 40))
