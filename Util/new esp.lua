@@ -42,9 +42,11 @@ pcall(function()
         writefile(ttf_path, game:HttpGet("https://github.com/YellowFireFighter/Crumbleware-Rewrite/raw/refs/heads/main/Util/04B_03__.TTF"))
     end
     if Drawing and Drawing.Fonts then
-        if Drawing.Fonts.Register then
-            EspFont = Drawing.Fonts.Register(ttf_path)
+        if DrawFont.Register then
+            print("registered")
+            EspFont = DrawFont.Register(ttf_path)
         elseif Drawing.Fonts.Plex then
+            print("failed sir")
             EspFont = Drawing.Fonts.Plex
         end
     end
