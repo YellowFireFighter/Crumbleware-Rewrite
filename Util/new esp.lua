@@ -775,6 +775,9 @@ local function GetNPCModels()
     local function scan(parent)
         for _, child in ipairs(parent:GetChildren()) do
             if child:IsA("Model") and child:FindFirstChild("Humanoid") and child:FindFirstChild("HumanoidRootPart") then
+                -- skip player characters (players have MovementAnticheat, AI don't)
+                if Players:GetPlayerFromCharacter(child) then continue end
+                if child:FindFirstChild("MovementAnticheat") then continue end
                 table.insert(models, child)
             elseif child:IsA("Folder") or (child:IsA("Model") and not child:FindFirstChild("Humanoid")) then
                 scan(child)
@@ -783,7 +786,6 @@ local function GetNPCModels()
     end
     scan(npc_container)
     return models
-end
 
 --//ANCHOR Loot scanner
 local function ScanLoots()
@@ -807,6 +809,9 @@ end
 
 --//ANCHOR Per-player update (the heavy lifter)
 local function UpdatePlayer(player, pool, deltaTime)
+    -- skip local player
+    if player == LocalPlayer then pool.Fade = 0 HidePool(pool) HideChams(player) return end
+
     local character = player.Character
     if not character then pool.Fade = 0 HidePool(pool) HideChams(player) return end
     -- skip fake/unspawned characters not in workspace (e.g. stored in ReplicatedStorage)
@@ -1078,10 +1083,10 @@ local function UpdatePlayer(player, pool, deltaTime)
         pool.Weapon.Visible = false
     end
 
-    --//ANCHOR Player flags (right side of box, stacking downward)
+    --//ANCHOR Player flags (right side of box, stacking downward, scaled to box)
     local flag_idx = 0
-    local flag_color = FlagColor("esp_flags_color", fromRGB(200, 200, 100))
-    local flag_size = clamp(textSize - 1, 8, 20)
+    -- scale flag text proportionally to box height so it doesn't overflow at distance
+    local flag_size = clamp(math.min(textSize - 1, h / 8), 6, 18)
 
     if FlagBool("esp_flags") then
         -- level
@@ -1094,7 +1099,7 @@ local function UpdatePlayer(player, pool, deltaTime)
             if lv_str then
                 flag_idx = flag_idx + 1
                 if flag_idx <= #pool.FlagTexts then
-                    PlaceText(pool.FlagTexts[flag_idx], lv_str, "Right", layout, flag_color, flag_size, alpha)
+                    PlaceText(pool.FlagTexts[flag_idx], lv_str, "Right", layout, FlagColor("esp_flag_level_color", fromRGB(200, 200, 100)), flag_size, alpha)
                 end
             end
         end
@@ -1109,7 +1114,7 @@ local function UpdatePlayer(player, pool, deltaTime)
             if is_reloading then
                 flag_idx = flag_idx + 1
                 if flag_idx <= #pool.FlagTexts then
-                    PlaceText(pool.FlagTexts[flag_idx], "RELOAD", "Right", layout, fromRGB(255, 100, 100), flag_size, alpha)
+                    PlaceText(pool.FlagTexts[flag_idx], "RELOAD", "Right", layout, FlagColor("esp_flag_reload_color", fromRGB(255, 100, 100)), flag_size, alpha)
                 end
             end
         end
@@ -1127,7 +1132,7 @@ local function UpdatePlayer(player, pool, deltaTime)
             if kd_str then
                 flag_idx = flag_idx + 1
                 if flag_idx <= #pool.FlagTexts then
-                    PlaceText(pool.FlagTexts[flag_idx], kd_str, "Right", layout, flag_color, flag_size, alpha)
+                    PlaceText(pool.FlagTexts[flag_idx], kd_str, "Right", layout, FlagColor("esp_flag_kd_color", fromRGB(200, 200, 100)), flag_size, alpha)
                 end
             end
         end
@@ -1145,7 +1150,7 @@ local function UpdatePlayer(player, pool, deltaTime)
             if hr_str then
                 flag_idx = flag_idx + 1
                 if flag_idx <= #pool.FlagTexts then
-                    PlaceText(pool.FlagTexts[flag_idx], hr_str, "Right", layout, flag_color, flag_size, alpha)
+                    PlaceText(pool.FlagTexts[flag_idx], hr_str, "Right", layout, FlagColor("esp_flag_hitrate_color", fromRGB(200, 200, 100)), flag_size, alpha)
                 end
             end
         end
@@ -1162,7 +1167,7 @@ local function UpdatePlayer(player, pool, deltaTime)
             if hs_str then
                 flag_idx = flag_idx + 1
                 if flag_idx <= #pool.FlagTexts then
-                    PlaceText(pool.FlagTexts[flag_idx], hs_str, "Right", layout, flag_color, flag_size, alpha)
+                    PlaceText(pool.FlagTexts[flag_idx], hs_str, "Right", layout, FlagColor("esp_flag_hsrate_color", fromRGB(200, 200, 100)), flag_size, alpha)
                 end
             end
         end
@@ -1191,7 +1196,7 @@ local function UpdatePlayer(player, pool, deltaTime)
             if val_str then
                 flag_idx = flag_idx + 1
                 if flag_idx <= #pool.FlagTexts then
-                    PlaceText(pool.FlagTexts[flag_idx], val_str, "Right", layout, fromRGB(100, 255, 100), flag_size, alpha)
+                    PlaceText(pool.FlagTexts[flag_idx], val_str, "Right", layout, FlagColor("esp_flag_invvalue_color", fromRGB(100, 255, 100)), flag_size, alpha)
                 end
             end
         end
@@ -1353,23 +1358,28 @@ local function UpdateNPC(model, pool, deltaTime)
     local outlineOn = FlagBool("esp_outlines")
     local boxColor  = FlagColor("esp_ai_color", fromRGB(255, 150, 50))
 
-    --// Bounding box -> screen min/max
-    local cf, size = model:GetBoundingBox()
+    --// Bounding box from R6 body parts only
+    local BODY_PARTS = {"Head", "HumanoidRootPart", "Left Arm", "Left Leg", "Right Arm", "Right Leg", "Torso"}
     local minX, minY = math.huge, math.huge
     local maxX, maxY = -math.huge, -math.huge
     local anyOn      = false
-    local hx, hy, hz = size.X / 2, size.Y / 2, size.Z / 2
 
-    for x = -1, 1, 2 do
-        for y = -1, 1, 2 do
-            for z = -1, 1, 2 do
-                local corner = (cf * CFrame.new(hx * x, hy * y, hz * z)).Position
-                local screen, depth, on = WorldToScreen(corner)
-                if on then anyOn = true end
-                if screen.X < minX then minX = screen.X end
-                if screen.Y < minY then minY = screen.Y end
-                if screen.X > maxX then maxX = screen.X end
-                if screen.Y > maxY then maxY = screen.Y end
+    for _, partName in ipairs(BODY_PARTS) do
+        local part = model:FindFirstChild(partName)
+        if not part or not part:IsA("BasePart") then continue end
+        local cf, sz = part.CFrame, part.Size
+        local hx, hy, hz = sz.X / 2, sz.Y / 2, sz.Z / 2
+        for x = -1, 1, 2 do
+            for y = -1, 1, 2 do
+                for z = -1, 1, 2 do
+                    local corner = (cf * CFrame.new(hx * x, hy * y, hz * z)).Position
+                    local screen, depth, on = WorldToScreen(corner)
+                    if on then anyOn = true end
+                    if screen.X < minX then minX = screen.X end
+                    if screen.Y < minY then minY = screen.Y end
+                    if screen.X > maxX then maxX = screen.X end
+                    if screen.Y > maxY then maxY = screen.Y end
+                end
             end
         end
     end
@@ -1383,9 +1393,9 @@ local function UpdateNPC(model, pool, deltaTime)
     local h = maxY - minY
     local textSize = clamp(FlagNumber("esp_text_size", 13), 8, 24)
 
-    --// Box (reuse same logic as player)
-    local boxType   = FlagString("esp_box_type", "Full")
-    local boxOn     = FlagBool("esp_box")
+    --// Box (uses AI-specific flags)
+    local boxType   = FlagString("esp_ai_box_type", "Full")
+    local boxOn     = FlagBool("esp_ai_box")
     local fullBox   = boxOn and boxType == "Full"
     local cornerBox = boxOn and boxType == "Corner"
 
@@ -1447,15 +1457,15 @@ local function UpdateNPC(model, pool, deltaTime)
         rightSlot = minY,
     }
 
-    --// Health bar
-    if FlagBool("esp_health") then
+    --// Health bar (AI-specific flags)
+    if FlagBool("esp_ai_health") then
         local realRatio = clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
         local hspeed = clamp(FlagNumber("esp_health_speed", 10), 1, 30)
         pool.HealthRatio = pool.HealthRatio + (realRatio - pool.HealthRatio) * clamp(deltaTime * hspeed, 0, 1)
         if pool.HealthRatio ~= pool.HealthRatio then pool.HealthRatio = realRatio end
         local ratio = pool.HealthRatio
-        local low   = FlagColor("esp_health_low", fromRGB(255, 40, 40))
-        local high  = FlagColor("esp_health_high", fromRGB(60, 255, 80))
+        local low   = FlagColor("esp_ai_health_low", fromRGB(255, 40, 40))
+        local high  = FlagColor("esp_ai_health_high", fromRGB(60, 255, 80))
         local hcol  = low:Lerp(high, ratio)
         local side  = FlagString("esp_health_pos", "Left")
         local bw    = clamp(FlagNumber("esp_health_width", 3), 1, 12)
@@ -1496,23 +1506,27 @@ local function UpdateNPC(model, pool, deltaTime)
         pool.AmmoOutline.Visible = false
     end
 
-    --// Name
-    PlaceText(pool.Name, model.Name, "Top",
-        layout, FlagColor("esp_name_color", fromRGB(255, 255, 255)), textSize, alpha)
+    --// Name (AI-specific)
+    if FlagBool("esp_ai_name") then
+        PlaceText(pool.Name, model.Name, "Top",
+            layout, FlagColor("esp_ai_name_color", fromRGB(255, 150, 50)), textSize, alpha)
+    else
+        pool.Name.Visible = false
+    end
 
     --// Distance
-    if FlagBool("esp_distance") then
+    if FlagBool("esp_ai_distance") then
         PlaceText(pool.Distance, ("%dm"):format(round(distance)), "Bottom",
-            layout, FlagColor("esp_dist_color", fromRGB(200, 200, 200)), textSize, alpha)
+            layout, FlagColor("esp_ai_dist_color", fromRGB(200, 200, 200)), textSize, alpha)
     else
         pool.Distance.Visible = false
     end
 
     --// Weapon
-    if FlagBool("esp_weapon") then
+    if FlagBool("esp_ai_weapon") then
         local weapon = ReadWeapon(model)
         PlaceText(pool.Weapon, weapon, "Bottom",
-            layout, FlagColor("esp_weapon_color", fromRGB(180, 180, 255)), textSize, alpha)
+            layout, FlagColor("esp_ai_weapon_color", fromRGB(180, 180, 255)), textSize, alpha)
     else
         pool.Weapon.Visible = false
     end
@@ -1753,11 +1767,11 @@ function ESP:BuildMenu(window)
     local Library = self.Library
     local page    = window:Page({ Name = "esp" })
 
-    --//ANCHOR Toggles (left) - colorpickers attach straight onto the toggles
-    local main = page:Section({ Name = "Toggles", Side = 1 })
+    --//ANCHOR Toggles (left)
+    local main = page:Section({ Name = "Player ESP", Side = 1 })
 
-    local function toggle(name, flag, default)
-        return main:Toggle({ Name = name, Flag = flag, Default = default, Callback = function() end })
+    local function toggle(section, name, flag, default)
+        return section:Toggle({ Name = name, Flag = flag, Default = default or false, Callback = function() end })
     end
 
     local function addColor(tog, flag, default)
@@ -1765,54 +1779,72 @@ function ESP:BuildMenu(window)
         return tog
     end
 
-    toggle("Enabled", "esp_enabled", true)
-
-    addColor(toggle("Box", "esp_box", true), "esp_box_color", fromRGB(255, 255, 255))
+    toggle(main, "Enabled", "esp_enabled", true)
+    addColor(toggle(main, "Box", "esp_box", true), "esp_box_color", fromRGB(255, 255, 255))
     main:Dropdown({ Name = "Box Type", Flag = "esp_box_type", Items = { "Full", "Corner" }, Default = "Full", Multi = false, Callback = function() end })
+    addColor(toggle(main, "Name", "esp_name", true), "esp_name_color", fromRGB(255, 255, 255))
 
-    addColor(toggle("Name ", "esp_name", true), "esp_name_color", fromRGB(255, 255, 255))
+    local health_tog = toggle(main, "Health Bar", "esp_health", true)
+    addColor(health_tog, "esp_health_high", fromRGB(60, 255, 80))
+    addColor(health_tog, "esp_health_low", fromRGB(255, 40, 40))
 
-    local healthTog = toggle("Health Bar", "esp_health", true)
-    addColor(healthTog, "esp_health_high", fromRGB(60, 255, 80))
-    addColor(healthTog, "esp_health_low", fromRGB(255, 40, 40))
+    addColor(toggle(main, "Ammo Bar", "esp_ammo", false), "esp_ammo_color", fromRGB(255, 200, 60))
+    addColor(toggle(main, "Distance", "esp_distance", true), "esp_dist_color", fromRGB(200, 200, 200))
+    addColor(toggle(main, "Weapon", "esp_weapon", false), "esp_weapon_color", fromRGB(180, 180, 255))
+    addColor(toggle(main, "Head Circle", "esp_headcircle", false), "esp_head_color", fromRGB(255, 255, 255))
+    addColor(toggle(main, "Skeleton", "esp_skeleton", false), "esp_skeleton_color", fromRGB(255, 255, 255))
+    addColor(toggle(main, "Look Angle", "esp_lookangle", false), "esp_look_color", fromRGB(255, 255, 255))
+    addColor(toggle(main, "Off Arrows", "esp_arrows", false), "esp_arrow_color", fromRGB(255, 80, 80))
 
-    addColor(toggle("Ammo Bar", "esp_ammo", false), "esp_ammo_color", fromRGB(255, 200, 60))
-    addColor(toggle("Distance", "esp_distance", true), "esp_dist_color", fromRGB(200, 200, 200))
-    addColor(toggle("Weapon", "esp_weapon", false), "esp_weapon_color", fromRGB(180, 180, 255))
+    local chams_tog = toggle(main, "Chams", "esp_chams", false)
+    addColor(chams_tog, "esp_chams_visible", fromRGB(0, 200, 255))
+    addColor(chams_tog, "esp_chams_occluded", fromRGB(255, 40, 40))
 
-    --// Player flags
-    local flags_tog = toggle("Flags", "esp_flags", false)
-    addColor(flags_tog, "esp_flags_color", fromRGB(200, 200, 100))
-    toggle("Flag: Level", "esp_flag_level", true)
-    toggle("Flag: Reloading", "esp_flag_reload", true)
-    toggle("Flag: K/D", "esp_flag_kd", false)
-    toggle("Flag: Hit Rate", "esp_flag_hitrate", false)
-    toggle("Flag: Headshot %", "esp_flag_hsrate", false)
-    toggle("Flag: Inventory", "esp_flag_invvalue", false)
-    toggle("Inventory Value", "esp_inventory_value", false)
-    addColor(toggle("Head Circle", "esp_headcircle", false), "esp_head_color", fromRGB(255, 255, 255))
-    addColor(toggle("Skeleton", "esp_skeleton", false), "esp_skeleton_color", fromRGB(255, 255, 255))
-    addColor(toggle("Look Angle", "esp_lookangle", false), "esp_look_color", fromRGB(255, 255, 255))
-    addColor(toggle("Off Arrows", "esp_arrows", false), "esp_arrow_color", fromRGB(255, 80, 80))
+    toggle(main, "Outlines", "esp_outlines", true)
+    toggle(main, "Team Check", "esp_teamcheck", true)
 
-    local chamsTog = toggle("Chams", "esp_chams", false)
-    addColor(chamsTog, "esp_chams_visible", fromRGB(0, 200, 255))
-    addColor(chamsTog, "esp_chams_occluded", fromRGB(255, 40, 40))
+    local team_tog = toggle(main, "Team Color", "esp_team_color", false)
+    addColor(team_tog, "esp_enemy_color", fromRGB(255, 80, 80))
+    addColor(team_tog, "esp_friend_color", fromRGB(80, 160, 255))
 
-    toggle("Outlines", "esp_outlines", true)
-    toggle("Team Check", "esp_teamcheck", true)
+    toggle(main, "Fade In/Out", "esp_fade", true)
+    toggle(main, "Inventory Value", "esp_inventory_value", false)
 
-    local teamTog = toggle("Team Color", "esp_team_color", false)
-    addColor(teamTog, "esp_enemy_color", fromRGB(255, 80, 80))
-    addColor(teamTog, "esp_friend_color", fromRGB(80, 160, 255))
+    --//ANCHOR Flags (left, under player ESP)
+    local flags = page:Section({ Name = "Flags", Side = 1 })
+    toggle(flags, "Enabled", "esp_flags", false)
+    addColor(toggle(flags, "Level", "esp_flag_level", true), "esp_flag_level_color", fromRGB(200, 200, 100))
+    addColor(toggle(flags, "Reloading", "esp_flag_reload", true), "esp_flag_reload_color", fromRGB(255, 100, 100))
+    addColor(toggle(flags, "K/D", "esp_flag_kd", false), "esp_flag_kd_color", fromRGB(200, 200, 100))
+    addColor(toggle(flags, "Hit Rate", "esp_flag_hitrate", false), "esp_flag_hitrate_color", fromRGB(200, 200, 100))
+    addColor(toggle(flags, "Headshot %", "esp_flag_hsrate", false), "esp_flag_hsrate_color", fromRGB(200, 200, 100))
+    addColor(toggle(flags, "Inventory", "esp_flag_invvalue", false), "esp_flag_invvalue_color", fromRGB(100, 255, 100))
 
-    toggle("Fade In/Out", "esp_fade", true)
+    --//ANCHOR AI / NPC ESP (right)
+    local ai = page:Section({ Name = "AI / NPC", Side = 2 })
+    toggle(ai, "Enabled", "esp_ai_enabled", false)
+    addColor(toggle(ai, "Box", "esp_ai_box", true), "esp_ai_color", fromRGB(255, 150, 50))
+    ai:Dropdown({ Name = "Box Type", Flag = "esp_ai_box_type", Items = { "Full", "Corner" }, Default = "Full", Multi = false, Callback = function() end })
+    addColor(toggle(ai, "Name", "esp_ai_name", true), "esp_ai_name_color", fromRGB(255, 150, 50))
+    local ai_health = toggle(ai, "Health Bar", "esp_ai_health", true)
+    addColor(ai_health, "esp_ai_health_high", fromRGB(60, 255, 80))
+    addColor(ai_health, "esp_ai_health_low", fromRGB(255, 40, 40))
+    addColor(toggle(ai, "Distance", "esp_ai_distance", true), "esp_ai_dist_color", fromRGB(200, 200, 200))
+    addColor(toggle(ai, "Weapon", "esp_ai_weapon", false), "esp_ai_weapon_color", fromRGB(180, 180, 255))
 
-    main:Slider({ Name = "Max Distance",  Flag = "esp_maxdist", Min = 50, Max = 5000, Default = 1000, Decimals = 1, Suffix = "m", Callback = function() end })
-    main:Slider({ Name = "Text Size",     Flag = "esp_text_size", Min = 8, Max = 24, Default = 13, Decimals = 1, Callback = function() end })
-    main:Slider({ Name = "Fade Speed",    Flag = "esp_fade_speed", Min = 1, Max = 30, Default = 8, Decimals = 1, Callback = function() end })
-    main:Slider({ Name = "Health Width",  Flag = "esp_health_width", Min = 1, Max = 12, Default = 3, Decimals = 1, Callback = function() end })
-    main:Slider({ Name = "Health Speed",  Flag = "esp_health_speed", Min = 1, Max = 30, Default = 10, Decimals = 1, Callback = function() end })
+    --//ANCHOR Loot ESP (right)
+    local loot = page:Section({ Name = "Loot", Side = 2 })
+    addColor(toggle(loot, "Enabled", "esp_loot_enabled", false), "esp_loot_color", fromRGB(255, 200, 50))
+    loot:Slider({ Name = "Max Distance", Flag = "esp_loot_maxdist", Min = 10, Max = 500, Default = 200, Decimals = 1, Suffix = "m", Callback = function() end })
+    loot:Slider({ Name = "Min Value", Flag = "esp_loot_min_value", Min = 0, Max = 100000, Default = 0, Decimals = 1, Callback = function() end })
+
+    --//ANCHOR Settings (right)
+    local settings = page:Section({ Name = "Settings", Side = 2 })
+    settings:Slider({ Name = "Max Distance", Flag = "esp_maxdist", Min = 50, Max = 5000, Default = 1000, Decimals = 1, Suffix = "m", Callback = function() end })
+    settings:Slider({ Name = "Text Size", Flag = "esp_text_size", Min = 8, Max = 24, Default = 13, Decimals = 1, Callback = function() end })
+    settings:Slider({ Name = "Fade Speed", Flag = "esp_fade_speed", Min = 1, Max = 30, Default = 8, Decimals = 1, Callback = function() end })
+    settings:Slider({ Name = "Health Width", Flag = "esp_health_width", Min = 1, Max = 12, Default = 3, Decimals = 1, Callback = function() end })
+    settings:Slider({ Name = "Health Speed", Flag = "esp_health_speed", Min = 1, Max = 30, Default = 10, Decimals = 1, Callback = function() end })
 
     --//ANCHOR Positions (right)
     local pos = page:Section({ Name = "Positions", Side = 2 })
@@ -1821,32 +1853,16 @@ function ESP:BuildMenu(window)
         section:Dropdown({ Name = name, Flag = flag, Items = items, Default = default, Multi = false, Callback = function() end })
     end
 
-    dropdown(pos, "Name Pos",     "esp_name_pos",   POS_4,    "Top")
-    dropdown(pos, "Distance Pos", "esp_dist_pos",   POS_4,    "Bottom")
-    dropdown(pos, "Weapon Pos",   "esp_weapon_pos", POS_4,    "Bottom")
-    dropdown(pos, "Health Pos",   "esp_health_pos", POS_BAR,  "Left")
-    dropdown(pos, "Ammo Pos",     "esp_ammo_pos",   POS_AMMO, "Bottom")
+    dropdown(pos, "Name Pos", "esp_name_pos", POS_4, "Top")
+    dropdown(pos, "Distance Pos", "esp_dist_pos", POS_4, "Bottom")
+    dropdown(pos, "Weapon Pos", "esp_weapon_pos", POS_4, "Bottom")
+    dropdown(pos, "Health Pos", "esp_health_pos", POS_BAR, "Left")
+    dropdown(pos, "Ammo Pos", "esp_ammo_pos", POS_AMMO, "Bottom")
 
     pos:Slider({ Name = "Look Length", Flag = "esp_look_length", Min = 1, Max = 20, Default = 3, Decimals = 1, Callback = function() end })
     pos:Slider({ Name = "Arrow Radius", Flag = "esp_arrow_radius", Min = 50, Max = 400, Default = 150, Decimals = 1, Callback = function() end })
-    pos:Slider({ Name = "Arrow Size",   Flag = "esp_arrow_size", Min = 8, Max = 40, Default = 18, Decimals = 1, Callback = function() end })
-    pos:Slider({ Name = "Chams Fill",   Flag = "esp_chams_fill", Min = 0, Max = 1, Default = 0.5, Decimals = 0.01, Callback = function() end })
-
-    --//ANCHOR AI ESP section (right side)
-    local ai = page:Section({ Name = "AI / NPC ESP", Side = 2 })
-    addColor(
-        ai:Toggle({ Name = "AI ESP Enabled", Flag = "esp_ai_enabled", Default = false, Callback = function() end }),
-        "esp_ai_color", fromRGB(255, 150, 50)
-    )
-
-    --//ANCHOR Loot ESP section (right side)
-    local loot = page:Section({ Name = "Loot ESP", Side = 2 })
-    addColor(
-        loot:Toggle({ Name = "Loot ESP Enabled", Flag = "esp_loot_enabled", Default = false, Callback = function() end }),
-        "esp_loot_color", fromRGB(255, 200, 50)
-    )
-    loot:Slider({ Name = "Loot Max Dist", Flag = "esp_loot_maxdist", Min = 10, Max = 500, Default = 200, Decimals = 1, Suffix = "m", Callback = function() end })
-    loot:Slider({ Name = "Min Value",     Flag = "esp_loot_min_value", Min = 0, Max = 100000, Default = 0, Decimals = 1, Callback = function() end })
+    pos:Slider({ Name = "Arrow Size", Flag = "esp_arrow_size", Min = 8, Max = 40, Default = 18, Decimals = 1, Callback = function() end })
+    pos:Slider({ Name = "Chams Fill", Flag = "esp_chams_fill", Min = 0, Max = 1, Default = 0.5, Decimals = 0.01, Callback = function() end })
 
     return page
 end
