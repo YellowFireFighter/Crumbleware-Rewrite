@@ -848,7 +848,7 @@ local function UpdatePlayer(player, pool, deltaTime)
 
     local character = player.Character
     if not character then pool.Fade = 0 HidePool(pool) HideChams(player) return end
-    --if not character:IsDescendantOf(Workspace) then pool.Fade = 0 HidePool(pool) HideChams(player) return end
+    if not character:IsDescendantOf(Workspace) then pool.Fade = 0 HidePool(pool) HideChams(player) return end
 
     local hrp      = character:FindFirstChild("HumanoidRootPart")
     local humanoid = character:FindFirstChildOfClass("Humanoid")
