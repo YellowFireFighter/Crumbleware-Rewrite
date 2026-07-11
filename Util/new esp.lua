@@ -786,8 +786,9 @@ local function GetNPCModels()
     end
     scan(npc_container)
     return models
+end
 
---//ANCHOR Loot scanner
+--//ANCHOR Loot scanner (no GetDescendants — walk known folders)
 local function ScanLoots()
     local buildings = Workspace:FindFirstChild("Buildings")
     if not buildings then return {} end
@@ -795,15 +796,33 @@ local function ScanLoots()
     if not loots then return {} end
 
     local results = {}
-    for _, item in ipairs(loots:GetDescendants()) do
-        if not item:IsA("Model") then continue end
-        local main = item:FindFirstChild("Main")
-        if not main or not main:IsA("BasePart") then continue end
-        -- must have a PromptData or ProximityPrompt to be interactable loot
-        if main:FindFirstChild("PromptData") or main:FindFirstChildOfClass("ProximityPrompt") then
-            table.insert(results, item)
+
+    -- ground items: Loots.Items
+    local items_folder = loots:FindFirstChild("Items")
+    if items_folder then
+        for _, item in ipairs(items_folder:GetChildren()) do
+            if item:IsA("Model") then
+                local main = item:FindFirstChild("Main")
+                if main and main:IsA("BasePart") then
+                    table.insert(results, item)
+                end
+            end
         end
     end
+
+    -- crates: Loots.Loots.Crates
+    local loots2 = loots:FindFirstChild("Loots")
+    if loots2 then
+        local crates = loots2:FindFirstChild("Crates")
+        if crates then
+            for _, crate in ipairs(crates:GetChildren()) do
+                if crate:IsA("Model") and crate:FindFirstChild("PromptData", true) then
+                    table.insert(results, crate)
+                end
+            end
+        end
+    end
+
     return results
 end
 
