@@ -42,11 +42,9 @@ pcall(function()
         writefile(ttf_path, game:HttpGet("https://github.com/YellowFireFighter/Crumbleware-Rewrite/raw/refs/heads/main/Util/04B_03__.TTF"))
     end
     if Drawing and Drawing.Fonts then
-        if DrawFont.Register then
-            print("registered")
-            EspFont = DrawFont.Register(ttf_path)
+        if Drawing.Fonts.Register then
+            EspFont = Drawing.Fonts.Register(ttf_path)
         elseif Drawing.Fonts.Plex then
-            print("failed sir")
             EspFont = Drawing.Fonts.Plex
         end
     end
@@ -850,8 +848,7 @@ local function UpdatePlayer(player, pool, deltaTime)
 
     local character = player.Character
     if not character then pool.Fade = 0 HidePool(pool) HideChams(player) return end
-    -- skip fake/unspawned characters not in workspace (e.g. stored in ReplicatedStorage)
-    if not character:IsDescendantOf(Workspace) then pool.Fade = 0 HidePool(pool) HideChams(player) return end
+    --if not character:IsDescendantOf(Workspace) then pool.Fade = 0 HidePool(pool) HideChams(player) return end
 
     local hrp      = character:FindFirstChild("HumanoidRootPart")
     local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -859,18 +856,11 @@ local function UpdatePlayer(player, pool, deltaTime)
         pool.Fade = 0 HidePool(pool) HideChams(player) return
     end
 
-    --// Team check + distance decide validity
-    local enemy = true
-    if LocalPlayer.Team and player.Team then
-        enemy = (player.Team ~= LocalPlayer.Team)
-    end
-
     local camPos   = Camera.CFrame.Position
     local distance = (hrp.Position - camPos).Magnitude
     local maxDist  = FlagNumber("esp_maxdist", 1000)
 
     local valid = true
-    if FlagBool("esp_teamcheck") and not enemy then valid = false end
     if distance > maxDist then valid = false end
 
     --//ANCHOR Fade
@@ -1838,7 +1828,6 @@ function ESP:BuildMenu(window)
     addColor(chams_tog, "esp_chams_occluded", fromRGB(255, 40, 40))
 
     toggle(main, "Outlines", "esp_outlines", true)
-    toggle(main, "Team Check", "esp_teamcheck", true)
 
     local team_tog = toggle(main, "Team Color", "esp_team_color", false)
     addColor(team_tog, "esp_enemy_color", fromRGB(255, 80, 80))
