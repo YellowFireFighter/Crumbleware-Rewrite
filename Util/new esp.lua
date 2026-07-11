@@ -185,6 +185,12 @@ local function CreatePool()
     pool.Weapon         = MakeText()
     pool.InventoryValue = MakeText()
 
+    --// Flag texts (right side, one per flag)
+    local MAX_FLAGS = 6
+    pool.FlagTexts = {}
+    for i = 1, MAX_FLAGS do
+        pool.FlagTexts[i] = MakeText()
+    end
     --// Head circle + outline
     pool.HeadOutline = NewDrawing("Circle", { Thickness = 3, Filled = false, Visible = false })
     pool.Head        = NewDrawing("Circle", { Thickness = 1, Filled = false, Visible = false })
@@ -258,6 +264,7 @@ local function RemovePool(pool)
     SafeRemove(pool.Distance)
     SafeRemove(pool.Weapon)
     SafeRemove(pool.InventoryValue)
+    for i = 1, #pool.FlagTexts do SafeRemove(pool.FlagTexts[i]) end
 
     SafeRemove(pool.HeadOutline)
     SafeRemove(pool.Head)
@@ -286,6 +293,7 @@ local function HidePool(pool)
     Hide(pool.HealthOutline) Hide(pool.HealthBg) Hide(pool.HealthFill)
     Hide(pool.AmmoOutline) Hide(pool.AmmoBg) Hide(pool.AmmoFill)
     Hide(pool.Name) Hide(pool.Distance) Hide(pool.Weapon) Hide(pool.InventoryValue)
+    for i = 1, #pool.FlagTexts do Hide(pool.FlagTexts[i]) end
     Hide(pool.HeadOutline) Hide(pool.Head)
     Hide(pool.LookOutline) Hide(pool.Look)
     Hide(pool.ArrowOutline) Hide(pool.Arrow)
@@ -801,6 +809,8 @@ end
 local function UpdatePlayer(player, pool, deltaTime)
     local character = player.Character
     if not character then pool.Fade = 0 HidePool(pool) HideChams(player) return end
+    -- skip fake/unspawned characters not in workspace (e.g. stored in ReplicatedStorage)
+    if not character:IsDescendantOf(Workspace) then pool.Fade = 0 HidePool(pool) HideChams(player) return end
 
     local hrp      = character:FindFirstChild("HumanoidRootPart")
     local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -866,23 +876,28 @@ local function UpdatePlayer(player, pool, deltaTime)
         RemoveChams(player)
     end
 
-    --// Bounding box -> screen min/max
-    local cf, size = character:GetBoundingBox()
+    --// Bounding box from R6 body parts only (GetBoundingBox is broken in some games)
+    local BODY_PARTS = {"Head", "HumanoidRootPart", "Left Arm", "Left Leg", "Right Arm", "Right Leg", "Torso"}
     local minX, minY = math.huge, math.huge
     local maxX, maxY = -math.huge, -math.huge
     local anyOn      = false
-    local hx, hy, hz = size.X / 2, size.Y / 2, size.Z / 2
 
-    for x = -1, 1, 2 do
-        for y = -1, 1, 2 do
-            for z = -1, 1, 2 do
-                local corner = (cf * CFrame.new(hx * x, hy * y, hz * z)).Position
-                local screen, depth, on = WorldToScreen(corner)
-                if on then anyOn = true end
-                if screen.X < minX then minX = screen.X end
-                if screen.Y < minY then minY = screen.Y end
-                if screen.X > maxX then maxX = screen.X end
-                if screen.Y > maxY then maxY = screen.Y end
+    for _, partName in ipairs(BODY_PARTS) do
+        local part = character:FindFirstChild(partName)
+        if not part or not part:IsA("BasePart") then continue end
+        local cf, sz = part.CFrame, part.Size
+        local hx, hy, hz = sz.X / 2, sz.Y / 2, sz.Z / 2
+        for x = -1, 1, 2 do
+            for y = -1, 1, 2 do
+                for z = -1, 1, 2 do
+                    local corner = (cf * CFrame.new(hx * x, hy * y, hz * z)).Position
+                    local screen, depth, on = WorldToScreen(corner)
+                    if on then anyOn = true end
+                    if screen.X < minX then minX = screen.X end
+                    if screen.Y < minY then minY = screen.Y end
+                    if screen.X > maxX then maxX = screen.X end
+                    if screen.Y > maxY then maxY = screen.Y end
+                end
             end
         end
     end
@@ -1063,10 +1078,150 @@ local function UpdatePlayer(player, pool, deltaTime)
         pool.Weapon.Visible = false
     end
 
+    --//ANCHOR Player flags (right side of box, stacking downward)
+    local flag_idx = 0
+    local flag_color = FlagColor("esp_flags_color", fromRGB(200, 200, 100))
+    local flag_size = clamp(textSize - 1, 8, 20)
+
+    if FlagBool("esp_flags") then
+        -- level
+        if FlagBool("esp_flag_level") then
+            local lv_str = nil
+            pcall(function()
+                local pd = player:FindFirstChild("playerData")
+                if pd then local lv = pd:FindFirstChild("level"); if lv then lv_str = "Lv" .. tostring(lv.Value) end end
+            end)
+            if lv_str then
+                flag_idx = flag_idx + 1
+                if flag_idx <= #pool.FlagTexts then
+                    PlaceText(pool.FlagTexts[flag_idx], lv_str, "Right", layout, flag_color, flag_size, alpha)
+                end
+            end
+        end
+
+        -- reloading
+        if FlagBool("esp_flag_reload") then
+            local is_reloading = false
+            pcall(function()
+                local tool = character:FindFirstChildOfClass("Tool")
+                if tool then local d = tool:FindFirstChild("_data"); if d then local r = d:FindFirstChild("reload"); if r and r.Value then is_reloading = true end end end
+            end)
+            if is_reloading then
+                flag_idx = flag_idx + 1
+                if flag_idx <= #pool.FlagTexts then
+                    PlaceText(pool.FlagTexts[flag_idx], "RELOAD", "Right", layout, fromRGB(255, 100, 100), flag_size, alpha)
+                end
+            end
+        end
+
+        -- k/d
+        if FlagBool("esp_flag_kd") then
+            local kd_str = nil
+            pcall(function()
+                local ls = player:FindFirstChild("leaderstats")
+                if ls then
+                    local k = ls:FindFirstChild("operator_kills"); local d = ls:FindFirstChild("death")
+                    if k and d then kd_str = "KD:" .. tostring(d.Value > 0 and math.floor(k.Value / d.Value * 10) / 10 or k.Value) end
+                end
+            end)
+            if kd_str then
+                flag_idx = flag_idx + 1
+                if flag_idx <= #pool.FlagTexts then
+                    PlaceText(pool.FlagTexts[flag_idx], kd_str, "Right", layout, flag_color, flag_size, alpha)
+                end
+            end
+        end
+
+        -- hit rate (current raid)
+        if FlagBool("esp_flag_hitrate") then
+            local hr_str = nil
+            pcall(function()
+                local pd = player:FindFirstChild("playerData")
+                if pd then local acc = pd:FindFirstChild("accuracy"); if acc then
+                    local h = acc:FindFirstChild("hits"); local s = acc:FindFirstChild("shots")
+                    if h and s and s.Value > 0 then hr_str = math.floor(h.Value / s.Value * 100) .. "%" end
+                end end
+            end)
+            if hr_str then
+                flag_idx = flag_idx + 1
+                if flag_idx <= #pool.FlagTexts then
+                    PlaceText(pool.FlagTexts[flag_idx], hr_str, "Right", layout, flag_color, flag_size, alpha)
+                end
+            end
+        end
+
+        -- headshot %
+        if FlagBool("esp_flag_hsrate") then
+            local hs_str = nil
+            pcall(function()
+                local ls = player:FindFirstChild("leaderstats")
+                if ls then local hs = ls:FindFirstChild("headshots"); local hc = ls:FindFirstChild("hitCount")
+                    if hs and hc and hc.Value > 0 then hs_str = "HS:" .. math.floor(hs.Value / hc.Value * 100) .. "%" end
+                end
+            end)
+            if hs_str then
+                flag_idx = flag_idx + 1
+                if flag_idx <= #pool.FlagTexts then
+                    PlaceText(pool.FlagTexts[flag_idx], hs_str, "Right", layout, flag_color, flag_size, alpha)
+                end
+            end
+        end
+
+        -- inventory value (sum prices from Backpack slots 1-4)
+        if FlagBool("esp_flag_invvalue") then
+            local val_str = nil
+            pcall(function()
+                local bp = player:FindFirstChild("Backpack")
+                if not bp then return end
+                local total = 0
+                for slot = 1, 4 do
+                    local sv = bp:FindFirstChild(tostring(slot))
+                    if sv and sv:IsA("ObjectValue") and sv.Value then
+                        total = total + 1 -- count equipped items at minimum
+                    end
+                end
+                local eq = bp:FindFirstChild("equipment")
+                if eq then
+                    for _, v in ipairs(eq:GetChildren()) do
+                        if v:IsA("ObjectValue") and v.Value then total = total + 1 end
+                    end
+                end
+                if total > 0 then val_str = total .. " items" end
+            end)
+            if val_str then
+                flag_idx = flag_idx + 1
+                if flag_idx <= #pool.FlagTexts then
+                    PlaceText(pool.FlagTexts[flag_idx], val_str, "Right", layout, fromRGB(100, 255, 100), flag_size, alpha)
+                end
+            end
+        end
+    end
+
+    -- hide unused flag slots
+    for i = flag_idx + 1, #pool.FlagTexts do
+        pool.FlagTexts[i].Visible = false
+    end
+
+    --// Inventory total value (bottom, uses getTotalPrice if available)
     if FlagBool("esp_inventory_value") then
-        local val = ReadInventoryValue(player)
-        local str = val and ("$%s"):format(tostring(val)) or nil
-        PlaceText(pool.InventoryValue, str, "Bottom",
+        local val_str = nil
+        pcall(function()
+            local bp = player:FindFirstChild("Backpack")
+            if not bp then return end
+            local get_price = nil
+            pcall(function() get_price = require(storage.Modules.Helper.getTotalPrice) end)
+            if get_price and type(get_price) == "function" then
+                local total = 0
+                for slot = 1, 4 do
+                    local sv = bp:FindFirstChild(tostring(slot))
+                    if sv and sv:IsA("ObjectValue") and sv.Value then
+                        pcall(function() total = total + get_price(sv.Value.Name) end)
+                    end
+                end
+                if total > 0 then val_str = "$" .. tostring(total) end
+            end
+        end)
+        PlaceText(pool.InventoryValue, val_str, "Bottom",
             layout, FlagColor("esp_dist_color", fromRGB(200, 200, 200)), textSize, alpha)
     else
         pool.InventoryValue.Visible = false
@@ -1624,6 +1779,16 @@ function ESP:BuildMenu(window)
     addColor(toggle("Ammo Bar", "esp_ammo", false), "esp_ammo_color", fromRGB(255, 200, 60))
     addColor(toggle("Distance", "esp_distance", true), "esp_dist_color", fromRGB(200, 200, 200))
     addColor(toggle("Weapon", "esp_weapon", false), "esp_weapon_color", fromRGB(180, 180, 255))
+
+    --// Player flags
+    local flags_tog = toggle("Flags", "esp_flags", false)
+    addColor(flags_tog, "esp_flags_color", fromRGB(200, 200, 100))
+    toggle("Flag: Level", "esp_flag_level", true)
+    toggle("Flag: Reloading", "esp_flag_reload", true)
+    toggle("Flag: K/D", "esp_flag_kd", false)
+    toggle("Flag: Hit Rate", "esp_flag_hitrate", false)
+    toggle("Flag: Headshot %", "esp_flag_hsrate", false)
+    toggle("Flag: Inventory", "esp_flag_invvalue", false)
     toggle("Inventory Value", "esp_inventory_value", false)
     addColor(toggle("Head Circle", "esp_headcircle", false), "esp_head_color", fromRGB(255, 255, 255))
     addColor(toggle("Skeleton", "esp_skeleton", false), "esp_skeleton_color", fromRGB(255, 255, 255))
